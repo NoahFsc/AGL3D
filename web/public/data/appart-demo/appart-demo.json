@@ -1,131 +1,238 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "logement": {
     "id": "appart-demo",
-    "libelle": "Appartement T2 meublé — démo",
+    "libelle": "Appartement T2 meublé, démo",
     "adresse": "12 rue des Lilas, 75011 Paris",
     "surfaceM2": 42,
     "meuble": true
   },
   "pieces": [
-    { "key": "salon", "label": "Salon" },
-    { "key": "chambre", "label": "Chambre" },
-    { "key": "cuisine", "label": "Cuisine" }
+    {
+      "key": "salon",
+      "label": "Salon"
+    },
+    {
+      "key": "chambre",
+      "label": "Chambre"
+    },
+    {
+      "key": "cuisine",
+      "label": "Cuisine"
+    }
   ],
   "elements": [
-    { "key": "salon.mur-ouest", "pieceKey": "salon", "label": "Mur ouest", "categorie": "mur" },
-    { "key": "salon.parquet", "pieceKey": "salon", "label": "Parquet", "categorie": "sol" },
-    { "key": "salon.table", "pieceKey": "salon", "label": "Table", "categorie": "mobilier" },
     {
-      "key": "cuisine.compteur-eau",
-      "pieceKey": "cuisine",
+      "key": "salon.porte-entree",
+      "pieceKey": "salon",
+      "label": "Porte d'entrée",
+      "categorie": "ouvrant"
+    },
+    {
+      "key": "salon.compteur-eau",
+      "pieceKey": "salon",
       "label": "Compteur d'eau",
       "categorie": "compteur"
     },
-    { "key": "cuisine.evier", "pieceKey": "cuisine", "label": "Évier", "categorie": "equipement" },
+    {
+      "key": "salon.compteur-electricite",
+      "pieceKey": "salon",
+      "label": "Compteur d'électricité",
+      "categorie": "compteur"
+    },
+    {
+      "key": "salon.mur-ouest",
+      "pieceKey": "salon",
+      "label": "Mur ouest",
+      "categorie": "mur"
+    },
+    {
+      "key": "salon.sol",
+      "pieceKey": "salon",
+      "label": "Sol",
+      "categorie": "sol"
+    },
+    {
+      "key": "chambre.mur",
+      "pieceKey": "chambre",
+      "label": "Mur",
+      "categorie": "mur"
+    },
+    {
+      "key": "chambre.sol",
+      "pieceKey": "chambre",
+      "label": "Sol",
+      "categorie": "sol"
+    },
     {
       "key": "chambre.placard",
       "pieceKey": "chambre",
       "label": "Placard",
       "categorie": "rangement"
-    }
-  ],
-  "points": [
-    { "numero": 1, "elementKey": "salon.mur-ouest" },
-    { "numero": 2, "elementKey": "salon.parquet" },
-    { "numero": 3, "elementKey": "cuisine.compteur-eau" },
-    { "numero": 4, "elementKey": "cuisine.evier" },
-    { "numero": 5, "elementKey": "chambre.placard" },
-    { "numero": 6, "elementKey": "salon.table" }
-  ],
-  "edls": [
-    {
-      "id": "edl-entree-2025-09-12",
-      "type": "entree",
-      "date": "2025-09-12",
-      "constats": [
-        {
-          "elementKey": "salon.mur-ouest",
-          "etat": "bon",
-          "commentaire": "Peinture blanche propre",
-          "photo": "photos/entree-salon-mur-ouest.webp"
-        },
-        {
-          "elementKey": "salon.parquet",
-          "etat": "bon",
-          "commentaire": "Parquet chêne vitrifié, légères traces d'usage",
-          "photo": "photos/entree-salon-parquet.webp"
-        },
-        {
-          "elementKey": "cuisine.compteur-eau",
-          "etat": "bon",
-          "commentaire": "Compteur accessible, plombé",
-          "photo": "photos/entree-cuisine-compteur-eau.webp",
-          "releve": { "valeur": 123.456, "unite": "m³" }
-        },
-        {
-          "elementKey": "cuisine.evier",
-          "etat": "bon",
-          "commentaire": "Évier inox propre, robinetterie fonctionnelle",
-          "photo": "photos/entree-cuisine-evier.webp"
-        },
-        {
-          "elementKey": "chambre.placard",
-          "etat": "bon",
-          "commentaire": "Portes coulissantes fonctionnelles, 3 étagères",
-          "photo": "photos/entree-chambre-placard.webp"
-        },
-        {
-          "elementKey": "salon.table",
-          "etat": "bon",
-          "commentaire": "Table en chêne 4 places, plateau sans rayure",
-          "photo": "photos/entree-salon-table.webp"
-        }
-      ]
     },
     {
-      "id": "edl-sortie-2027-06-30",
-      "type": "sortie",
-      "date": "2027-06-30",
-      "constats": [
-        {
-          "elementKey": "salon.mur-ouest",
-          "etat": "mauvais",
-          "commentaire": "Trou de cheville et traces noires",
-          "photo": "photos/sortie-salon-mur-ouest.webp"
-        },
-        {
-          "elementKey": "salon.parquet",
-          "etat": "bon",
-          "commentaire": "Parquet chêne vitrifié, légères traces d'usage",
-          "photo": "photos/sortie-salon-parquet.webp"
-        },
-        {
-          "elementKey": "cuisine.compteur-eau",
-          "etat": "bon",
-          "commentaire": "Compteur accessible, plombé",
-          "photo": "photos/sortie-cuisine-compteur-eau.webp",
-          "releve": { "valeur": 187.912, "unite": "m³" }
-        },
-        {
-          "elementKey": "cuisine.evier",
-          "etat": "moyen",
-          "commentaire": "Rayures profondes dans le bac, joint silicone noirci",
-          "photo": "photos/sortie-cuisine-evier.webp"
-        },
-        {
-          "elementKey": "chambre.placard",
-          "etat": "moyen",
-          "commentaire": "Porte coulissante sortie du rail, étagère fendue",
-          "photo": "photos/sortie-chambre-placard.webp"
-        },
-        {
-          "elementKey": "salon.table",
-          "etat": "bon",
-          "commentaire": "Table en chêne 4 places, plateau sans rayure",
-          "photo": "photos/sortie-salon-table.webp"
-        }
-      ]
+      "key": "cuisine.evier",
+      "pieceKey": "cuisine",
+      "label": "Évier",
+      "categorie": "equipement"
+    },
+    {
+      "key": "cuisine.plan-de-travail",
+      "pieceKey": "cuisine",
+      "label": "Plan de travail",
+      "categorie": "equipement"
     }
-  ]
+  ],
+  "demo": {
+    "edls": [
+      {
+        "type": "entree",
+        "date": "2025-09-12",
+        "constats": [
+          {
+            "elementKey": "salon.porte-entree",
+            "etat": "bon",
+            "commentaire": "Porte et serrure fonctionnelles, 2 clés remises",
+            "photo": null
+          },
+          {
+            "elementKey": "salon.compteur-eau",
+            "etat": "bon",
+            "commentaire": "Compteur accessible, plombé",
+            "photo": null,
+            "releve": {
+              "valeur": 123.456,
+              "unite": "m³"
+            }
+          },
+          {
+            "elementKey": "salon.compteur-electricite",
+            "etat": "bon",
+            "commentaire": "Compteur Linky accessible",
+            "photo": null,
+            "releve": {
+              "valeur": 45210,
+              "unite": "kWh"
+            }
+          },
+          {
+            "elementKey": "salon.mur-ouest",
+            "etat": "bon",
+            "commentaire": "Peinture blanche propre",
+            "photo": null
+          },
+          {
+            "elementKey": "salon.sol",
+            "etat": "bon",
+            "commentaire": "Parquet chêne vitrifié, légères traces d'usage",
+            "photo": null
+          },
+          {
+            "elementKey": "chambre.mur",
+            "etat": "bon",
+            "commentaire": "Papier peint beige sans accroc",
+            "photo": null
+          },
+          {
+            "elementKey": "chambre.sol",
+            "etat": "usage",
+            "commentaire": "Moquette grise, usure légère devant la fenêtre",
+            "photo": null
+          },
+          {
+            "elementKey": "chambre.placard",
+            "etat": "bon",
+            "commentaire": "Portes coulissantes fonctionnelles, 3 étagères",
+            "photo": null
+          },
+          {
+            "elementKey": "cuisine.evier",
+            "etat": "bon",
+            "commentaire": "Évier inox propre, robinetterie fonctionnelle",
+            "photo": null
+          },
+          {
+            "elementKey": "cuisine.plan-de-travail",
+            "etat": "bon",
+            "commentaire": "Stratifié clair, sans brûlure",
+            "photo": null
+          }
+        ]
+      },
+      {
+        "type": "sortie",
+        "date": "2027-06-30",
+        "constats": [
+          {
+            "elementKey": "salon.porte-entree",
+            "etat": "bon",
+            "commentaire": "Porte et serrure fonctionnelles, 2 clés rendues",
+            "photo": null
+          },
+          {
+            "elementKey": "salon.compteur-eau",
+            "etat": "bon",
+            "commentaire": "Compteur accessible, plombé",
+            "photo": null,
+            "releve": {
+              "valeur": 187.912,
+              "unite": "m³"
+            }
+          },
+          {
+            "elementKey": "salon.compteur-electricite",
+            "etat": "bon",
+            "commentaire": "Compteur Linky accessible",
+            "photo": null,
+            "releve": {
+              "valeur": 51874,
+              "unite": "kWh"
+            }
+          },
+          {
+            "elementKey": "salon.mur-ouest",
+            "etat": "mauvais",
+            "commentaire": "Trou de cheville et traces noires",
+            "photo": null
+          },
+          {
+            "elementKey": "salon.sol",
+            "etat": "bon",
+            "commentaire": "Parquet chêne vitrifié, légères traces d'usage",
+            "photo": null
+          },
+          {
+            "elementKey": "chambre.mur",
+            "etat": "bon",
+            "commentaire": "Papier peint beige sans accroc",
+            "photo": null
+          },
+          {
+            "elementKey": "chambre.sol",
+            "etat": "usage",
+            "commentaire": "Moquette grise, usure légère devant la fenêtre",
+            "photo": null
+          },
+          {
+            "elementKey": "chambre.placard",
+            "etat": "usage",
+            "commentaire": "Porte coulissante sortie du rail, étagère fendue",
+            "photo": null
+          },
+          {
+            "elementKey": "cuisine.evier",
+            "etat": "usage",
+            "commentaire": "Rayures profondes dans le bac, joint silicone noirci",
+            "photo": null
+          },
+          {
+            "elementKey": "cuisine.plan-de-travail",
+            "etat": "mauvais",
+            "commentaire": "Brûlure circulaire près de la plaque",
+            "photo": null
+          }
+        ]
+      }
+    ]
+  }
 }

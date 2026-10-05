@@ -1,6 +1,6 @@
 /**
  * Modèle de données d'un état des lieux (EDL).
- * Miroir de public/data/<dossier>/<dossier>.json — garder les deux synchronisés.
+ * Miroir de public/data/<dossier>/<dossier>.json : garder les deux synchronisés.
  */
 
 /** Clé de pièce, ex. `salon`. */
@@ -12,16 +12,15 @@ export type PieceKey = string
  */
 export type ElementKey = `${PieceKey}.${string}`
 
-export type CategorieElement =
-  'mur' | 'sol' | 'plafond' | 'ouvrant' | 'equipement' | 'compteur' | 'rangement' | 'mobilier'
+export type CategorieElement = 'mur' | 'sol' | 'ouvrant' | 'equipement' | 'compteur' | 'rangement'
 
-/** État constaté d'un élément, du meilleur au pire. */
-export type Etat = 'neuf' | 'bon' | 'moyen' | 'mauvais'
+/** État constaté d'un élément. Couleurs du repère : vert, orange, rouge. */
+export type Etat = 'bon' | 'usage' | 'mauvais'
+
+/** États du meilleur au pire, pour comparer l'entrée et la sortie. */
+export const ETATS: readonly Etat[] = ['bon', 'usage', 'mauvais']
 
 export type TypeEdl = 'entree' | 'sortie'
-
-/** Résultat de la comparaison entrée → sortie pour un point. */
-export type StatutComparaison = 'inchange' | 'degrade' | 'ameliore' | 'releve'
 
 export interface Logement {
   id: string
@@ -43,12 +42,7 @@ export interface Element {
   categorie: CategorieElement
 }
 
-/** Point numéroté affiché sur la maquette (marqueur). */
-export interface Point {
-  numero: number
-  elementKey: ElementKey
-}
-
+/** Index d'un compteur. */
 export interface Releve {
   valeur: number
   unite: string
@@ -65,19 +59,18 @@ export interface Constat {
 }
 
 export interface Edl {
-  id: string
   type: TypeEdl
   /** Date ISO `YYYY-MM-DD`. */
   date: string
   constats: Constat[]
 }
 
-/** Contenu complet d'un fichier `<dossier>.json`. */
-export interface DossierEdl {
-  schemaVersion: 1
+/** Données de référence d'un logement : contenu de `<dossier>.json`. */
+export interface Dossier {
+  schemaVersion: 2
   logement: Logement
   pieces: Piece[]
   elements: Element[]
-  points: Point[]
-  edls: Edl[]
+  /** Jeu de démo chargé à la demande, par exemple pour la soutenance. */
+  demo: { edls: Edl[] }
 }
