@@ -53,8 +53,12 @@ des lieux dans `Element.key`. On ne renomme jamais une clé sans mettre à jour 
 Une clé de pièce vaut `salon`, `chambre` ou `cuisine`. La valeur `overview` désigne la
 vue d'ensemble de l'appartement.
 
-Le statut d'un point vaut `inchange`, `degrade`, `ameliore`, `releve` ou `neutre`. On
-utilise `neutre` quand la page affiche seulement l'entrée ou seulement la sortie.
+L'état d'un élément vaut `bon`, `usage` ou `mauvais`. Unity colore le repère en vert,
+orange ou rouge. Le survol d'un élément utilise une autre couleur, pour ne pas le
+confondre avec un état.
+
+Le mode vaut `accueil`, `entree`, `sortie` ou `comparer`. En mode `accueil`, la caméra
+montre tout l'appartement et la maquette tourne lentement.
 
 Les coordonnées écran vont de 0 à 1 dans le canvas, avec l'origine en haut à gauche.
 Elles ne dépendent pas de la densité de pixels de l'écran. Pour placer une carte à
@@ -65,7 +69,8 @@ côté du point cliqué, Vue les multiplie par la largeur et la hauteur du canva
 1. Vue charge le build avec `createUnityInstance`.
 2. Unity démarre. Chaque `InspectableElement` s'enregistre.
 3. `WebBridge` envoie `ready` avec la liste des clés.
-4. Vue envoie `init`, puis `setPoints`.
+4. Vue envoie `init` avec le mode `accueil`. Quand l'utilisateur choisit un mode, Vue
+   renvoie `init` avec ce mode, puis `setPoints` avec les éléments déjà notés.
 5. L'utilisateur interagit. Les deux côtés échangent des messages.
 6. Quand le composant Vue disparaît, Vue appelle `Quit()` pour arrêter Unity.
 
@@ -75,23 +80,24 @@ manquent d'un côté ou de l'autre.
 
 ## Messages de Vue vers Unity
 
-| Type          | Contenu                                                   | Ce que fait Unity |
-| ------------- | --------------------------------------------------------- | ----------------- |
-| `init`        | `{ dossierId: string, mode: "entree" \| "sortie" \| "comparer" }` | Remet à zéro la sélection et place la caméra sur la vue d'ensemble. |
-| `setPoints`   | `{ points: [{ key, numero, label, statut }] }`            | Remplace tous les marqueurs. Chaque point reçoit un marqueur numéroté, coloré selon son statut. Unity ignore une clé inconnue et affiche un avertissement. |
-| `focusRoom`   | `{ room: string }`, une clé de pièce ou `"overview"`      | Déplace la caméra vers la pièce, puis envoie `roomChanged`. |
-| `select`      | `{ key: string \| null }`                                 | Met l'élément en surbrillance. `null` ou une chaîne vide retire la sélection. Unity n'envoie pas `pointSelected` en réponse, pour éviter une boucle. |
-| `setContrast` | `{ enabled: boolean }`                                    | Active ou désactive le contraste élevé, avec des couleurs de statut plus distinctes et des étiquettes plus lisibles. |
+| Type           | Contenu                                                   | Ce que fait Unity |
+| -------------- | --------------------------------------------------------- | ----------------- |
+| `init`         | `{ dossierId: string, mode: "accueil" \| "entree" \| "sortie" \| "comparer" }` | Retire la sélection et applique le mode. En `accueil`, montre tout l'appartement et le fait tourner lentement. |
+| `setPoints`    | `{ points: [{ key, label, etat, degrade }] }`             | Remplace tous les repères. Chaque point reçoit un repère coloré selon son `etat`. En mode Comparer, les éléments avec `degrade: true` passent progressivement au rouge. Unity ignore une clé inconnue et affiche un avertissement. |
+| `focusRoom`    | `{ room: string }`, une clé de pièce ou `"overview"`      | Déplace la caméra vers la pièce en environ une seconde, puis envoie `roomChanged`. |
+| `focusElement` | `{ key: string }`                                         | Rapproche la caméra de l'élément. Sert à la liste des défauts en mode Comparer. |
+| `select`       | `{ key: string \| null }`                                 | Met l'élément en surbrillance. `null` ou une chaîne vide retire la sélection, par exemple quand l'utilisateur ferme la fiche avec Échap. Unity n'envoie pas `pointSelected` en réponse, pour éviter une boucle. |
 
 Exemples :
 
 ```json
+{ "type": "init",      "payload": { "dossierId": "appart-demo", "mode": "accueil" } }
 { "type": "setPoints", "payload": { "points": [
-  { "key": "salon.mur-ouest", "numero": 1, "label": "Mur ouest", "statut": "degrade" },
-  { "key": "salon.parquet",   "numero": 2, "label": "Parquet",   "statut": "inchange" }
+  { "key": "salon.mur-ouest", "label": "Mur ouest", "etat": "mauvais", "degrade": true },
+  { "key": "salon.sol",       "label": "Sol",       "etat": "bon",     "degrade": false }
 ] } }
-{ "type": "focusRoom", "payload": { "room": "cuisine" } }
-{ "type": "select",    "payload": { "key": "cuisine.evier" } }
+{ "type": "focusElement", "payload": { "key": "cuisine.evier" } }
+{ "type": "select",       "payload": { "key": null } }
 ```
 
 ## Messages de Unity vers Vue
@@ -99,8 +105,11 @@ Exemples :
 | Type            | Contenu                                  | Quand Unity l'envoie |
 | --------------- | ---------------------------------------- | -------------------- |
 | `ready`         | `{ keys: string[] }`                     | Une seule fois, au démarrage de `WebBridge`, avec les clés de tous les `InspectableElement` actifs. |
-| `pointSelected` | `{ key: string, x: number, y: number }`  | Quand l'utilisateur clique ou touche un élément ou son marqueur. |
+| `pointSelected` | `{ key: string, x: number, y: number }`  | Quand l'utilisateur clique sur un élément ou sur son repère. Unity rapproche aussi la caméra de l'élément. |
+| `deselected`    | `{}`                                     | Quand l'utilisateur clique dans le vide. Vue ferme la fiche. |
 | `roomChanged`   | `{ room: string }`                       | Quand la caméra a fini de se déplacer, après un `focusRoom` ou quand l'utilisateur change de pièce en naviguant librement. |
+
+Le survol reste entièrement dans Unity. Il n'envoie aucun message.
 
 Exemple :
 

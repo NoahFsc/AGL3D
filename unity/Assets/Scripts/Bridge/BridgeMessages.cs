@@ -27,18 +27,20 @@ namespace AGL3D.Bridge
     public class InitPayload
     {
         public string dossierId;
-        /// <summary>"entree" | "sortie" | "comparer"</summary>
+        /// <summary>"accueil" | "entree" | "sortie" | "comparer"</summary>
         public string mode;
     }
 
+    /// <summary>Repère affiché sur un élément noté.</summary>
     [Serializable]
     public class PointData
     {
         public string key;
-        public int numero;
         public string label;
-        /// <summary>"inchange" | "degrade" | "ameliore" | "releve" | "neutre"</summary>
-        public string statut;
+        /// <summary>"bon" (vert) | "usage" (orange) | "mauvais" (rouge)</summary>
+        public string etat;
+        /// <summary>En mode Comparer, l'élément passe progressivement au rouge.</summary>
+        public bool degrade;
     }
 
     [Serializable]
@@ -55,16 +57,16 @@ namespace AGL3D.Bridge
     }
 
     [Serializable]
-    public class SelectPayload
+    public class FocusElementPayload
     {
-        /// <summary>Clé d'élément, ou vide/null pour désélectionner.</summary>
         public string key;
     }
 
     [Serializable]
-    public class SetContrastPayload
+    public class SelectPayload
     {
-        public bool enabled;
+        /// <summary>Clé d'élément, ou vide/null pour désélectionner.</summary>
+        public string key;
     }
 
     /* ----------------------------- Unity -> Vue ----------------------------- */
@@ -82,6 +84,12 @@ namespace AGL3D.Bridge
         /// <summary>Position normalisée [0..1] dans le canvas, origine en haut à gauche.</summary>
         public float x;
         public float y;
+    }
+
+    /// <summary>Clic dans le vide : la page ferme la fiche. Sérialisé en <c>{}</c>.</summary>
+    [Serializable]
+    public class DeselectedPayload
+    {
     }
 
     [Serializable]

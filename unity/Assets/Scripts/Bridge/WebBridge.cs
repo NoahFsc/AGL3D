@@ -24,8 +24,8 @@ namespace AGL3D.Bridge
         public event Action<InitPayload> InitReceived;
         public event Action<SetPointsPayload> SetPointsReceived;
         public event Action<FocusRoomPayload> FocusRoomReceived;
+        public event Action<FocusElementPayload> FocusElementReceived;
         public event Action<SelectPayload> SelectReceived;
-        public event Action<SetContrastPayload> SetContrastReceived;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
@@ -84,8 +84,8 @@ namespace AGL3D.Bridge
                 case "init": Dispatch(json, InitReceived); break;
                 case "setPoints": Dispatch(json, SetPointsReceived); break;
                 case "focusRoom": Dispatch(json, FocusRoomReceived); break;
+                case "focusElement": Dispatch(json, FocusElementReceived); break;
                 case "select": Dispatch(json, SelectReceived); break;
-                case "setContrast": Dispatch(json, SetContrastReceived); break;
                 default:
                     Debug.LogWarning($"[WebBridge] Type de message inconnu : \"{header?.type}\"");
                     break;
@@ -126,6 +126,12 @@ namespace AGL3D.Bridge
                 // Unity : origine en bas à gauche ; contrat : en haut à gauche.
                 y = Mathf.Clamp01(1f - screenPosition.y / Screen.height),
             });
+        }
+
+        /// <summary>Clic dans le vide : demande à la page de fermer la fiche.</summary>
+        public static void EmitDeselected()
+        {
+            Emit("deselected", new DeselectedPayload());
         }
 
         public static void EmitRoomChanged(string room)

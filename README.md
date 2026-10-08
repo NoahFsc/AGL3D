@@ -1,21 +1,28 @@
 # AGL3D, état des lieux en 3D
 
-Projet de cours du M2 MIAGE, en groupe de 3. On modélise un appartement en 3D avec
-Unity, et on l'affiche dans une page web pour consulter son état des lieux. L'utilisateur
-navigue de pièce en pièce et clique sur un élément (mur, sol, évier, compteur...) pour
-voir son état à l'entrée, à la sortie, ou la comparaison des deux.
+Projet de cours du M2 MIAGE, en groupe de 3. L'application remplace la grille papier
+d'un état des lieux par une maquette 3D d'appartement. L'utilisateur clique sur un
+élément (mur, sol, évier, placard, compteur...), lui donne un état, et un repère coloré
+apparaît à cet endroit. Il refait l'inspection à la sortie du locataire. En mode
+Comparer, les éléments dégradés passent au rouge dans la 3D.
 
-La partie 3D est un projet Unity 6 (URP) exporté en WebGL. Une application Vue l'affiche
-et lui envoie les données. Les deux échangent des messages JSON décrits dans
-[docs/contrat-messages.md](docs/contrat-messages.md).
+La partie 3D est un projet Unity 6 (URP) exporté en WebGL. Une application Vue l'affiche,
+gère les fiches et enregistre les constats. Les deux échangent des messages JSON décrits
+dans [docs/contrat-messages.md](docs/contrat-messages.md). Le
+[cahier des charges](docs/cahier-des-charges.pdf) décrit le comportement attendu.
 
 ## Ce que doit faire la 3D
 
-- Afficher la maquette de l'appartement (salon, chambre, cuisine), modélisée avec ProBuilder.
-- Déplacer la caméra autour de l'appartement et la centrer sur une pièce à la demande.
-- Placer un marqueur numéroté sur chaque point de l'état des lieux, coloré selon son
-  statut (inchangé, dégradé, amélioré, relevé).
-- Prévenir la page quand l'utilisateur clique sur un élément.
+- Afficher la maquette de l'appartement, modélisée avec ProBuilder : un salon avec
+  l'entrée et les compteurs, une chambre et une cuisine, avec des murs à mi-hauteur.
+- Contenir 10 éléments à inspecter.
+- Tourner autour de l'appartement au clic droit, zoomer à la molette, et déplacer la
+  caméra vers une pièce ou un élément en environ une seconde. La caméra reste au-dessus
+  des murs.
+- Illuminer l'élément survolé et prévenir la page quand l'utilisateur clique dessus.
+- Afficher un repère coloré sur chaque élément noté : vert pour Bon, orange pour Usage,
+  rouge pour Mauvais.
+- En mode Comparer, faire passer progressivement au rouge les éléments dégradés.
 
 Chaque objet cliquable porte un composant `InspectableElement` avec une clé stable, par
 exemple `salon.mur-ouest`. Les données de l'état des lieux utilisent la même clé.
@@ -108,6 +115,7 @@ Ouvrez ensuite http://localhost:5173.
 
 ## Documentation
 
+- [Cahier des charges](docs/cahier-des-charges.pdf)
 - [Contrat de messages entre Vue et Unity](docs/contrat-messages.md)
 - [Plan d'action de l'équipe](docs/PLAN.md), avec la répartition des lots et les règles
   pour éviter les conflits dans Unity

@@ -131,3 +131,6 @@ Desktop.ini
 
 # Dossier temporaire du script de bootstrap
 /.bootstrap-tmp/
+
+# Fichiers générés par Burst lors d'un build Web
+/[Dd]ata/
