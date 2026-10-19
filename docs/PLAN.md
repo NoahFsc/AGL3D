@@ -1,11 +1,9 @@
 # Plan d'action
 
-Ce plan suit le [cahier des charges](cahier-des-charges.pdf). On découpe le projet en
-trois lots, un par personne. Chaque lot contient une partie Unity et une partie Vue,
-pour que tout le monde travaille sur les deux.
-
-Le planning couvre 6 semaines à partir du lundi 5 octobre 2026. On le recalera sur les
-dates de rendu du cours.
+Ce plan suit le [cahier des charges](cahier-des-charges.pdf). Nous sommes trois :
+Antoine, Noah et Sara. On découpe le projet en trois lots, un par personne. Chaque lot
+contient une partie Unity et une partie Vue, pour que chacun de nous travaille sur les
+deux.
 
 ## Ce que demande le cahier des charges
 
@@ -89,21 +87,31 @@ Il reste un point à trancher. Le tableau des contrôles du cahier des charges o
 fiche au survol, alors que la liste des fonctionnalités l'ouvre au clic. On propose de
 suivre la liste : le survol illumine, le clic ouvre la fiche.
 
-## Où on en est au 5 octobre 2026
+## Qui fait quoi
+
+| Lot | Qui | Sujet |
+| --- | --- | ----- |
+| A | Antoine | L'appartement et la caméra |
+| B | Noah | Cliquer sur un élément et le noter |
+| C | Sara | L'accueil, les couleurs et la comparaison |
+
+Chacun de nous travaille à la fois dans Unity et dans Vue.
+
+## Où on en est
 
 ### Ce qui marche
 
-La page Vue charge le build Unity WebGL et reçoit ses messages. Dans la scène de test
-`SampleScene`, un cube porte un `InspectableElement` avec la clé `salon.mur-ouest`. Au
-démarrage, Unity envoie `ready {"keys":["salon.mur-ouest"]}` et la page l'affiche.
+La connexion entre Unity et Vue est faite. La page Vue charge le build Unity WebGL, et
+les deux côtés s'échangent des messages. Dans la scène de test `SampleScene`, un cube
+porte un `InspectableElement` avec la clé `salon.mur-ouest`. Au démarrage, Unity envoie
+`ready {"keys":["salon.mur-ouest"]}` et la page l'affiche.
 
 Le dépôt contient déjà :
 
 - le projet Unity dans `unity/` et l'application Vue dans `web/` ;
 - les scripts du pont : `WebBridge`, `InspectableElement`, `BridgeMessages` et le
   fichier `AGL3DBridge.jslib` ;
-- les réglages Web du projet et le build profile `Web`, avec une sortie dans
-  `web/public/unity/` ;
+- le build profile `Web`, avec une sortie dans `web/public/unity/` ;
 - côté Vue, le composable `useUnity`, le composant `UnityViewer.vue` et une page de test
   qui liste les messages reçus d'Unity ;
 - les types TypeScript, avec les états `bon`, `usage` et `mauvais` ;
@@ -111,153 +119,118 @@ Le dépôt contient déjà :
   enregistrent les constats dans le `localStorage` ;
 - le fichier de démo `appart-demo.json`, avec les 10 éléments et un jeu de démo
   d'entrée et de sortie ;
-- le contrat de messages à jour, le README et ce plan.
+- le contrat de messages, le README et ce plan.
 
-### Ce qui manque dans le code actuel
+### Ce qui manque
 
 - Aucun script Unity ne réagit encore aux messages reçus. `WebBridge` les reçoit, puis
   affiche un avertissement "Aucun abonné".
 - `useUnity` ignore les messages envoyés avant `ready` au lieu de les mettre en attente.
-- La caméra est fixe.
 - La scène principale `Main.unity` n'existe pas. On teste dans `SampleScene`.
-- Le build dans `web/public/unity/` date d'avant la mise à jour du contrat. Il faut le
-  refaire.
+- La caméra est fixe.
 - Le fichier de démo ne référence aucune photo. Le champ `photo` existe dans les
   constats, mais vaut `null`.
 
-### Ce qu'il reste à faire cette semaine
+## Avant de commencer
 
-- Trancher le choix entre survol et clic pour ouvrir la fiche.
-- Attribuer les lots A, B et C.
-- Relire le contrat de messages à trois et le valider. Il a été mis à jour à partir du
-  cahier des charges.
-- Commiter les fichiers créés par Unity au premier lancement : les `.meta` des scripts du
-  pont, le build profile `Web`, la scène de test et les réglages mis à jour. Les
-  réglages vont dans une PR à part.
-- Configurer UnityYAMLMerge sur chaque machine, avec la commande du README.
-- Faire un build chacun, pour vérifier que tout le monde peut afficher la 3D dans la page.
+- Tous les trois : on relit et on valide le contrat de messages, et on tranche le choix
+  entre survol et clic pour ouvrir la fiche.
+- Tous les trois : on configure UnityYAMLMerge et Git LFS, puis chacun fait un build et
+  vérifie qu'il voit la 3D dans la page.
+- Antoine : crée une **scène de test avec 10 cubes** qui portent les vraies clés du JSON.
+  Noah et Sara s'en servent en attendant l'appartement. C'est la première tâche à faire,
+  parce qu'elle débloque les autres.
 
-## Lot A. Maquette, caméra et navigation
+## Les tâches
 
-Côté Unity :
+Une tâche correspond à une branche et à une PR. ✓ veut dire qu'on peut la commencer tout
+de suite. Sinon, la colonne « Attend » indique la tâche qui doit être finie avant.
 
-- Modéliser l'appartement avec ProBuilder : salon avec l'entrée, chambre, cuisine, murs
-  à mi-hauteur, style maquette.
-- Placer les 10 éléments, avec les compteurs près de l'entrée. Poser sur chacun un
-  `InspectableElement` et un collider, avec les clés du JSON.
-- Écrire le contrôle de caméra : rotation au clic droit, zoom à la molette.
-- Bloquer la caméra au-dessus des murs, sans traverser les cloisons.
-- Gérer les trois vues (appartement, pièce, élément) avec des transitions d'environ une
-  seconde.
-- Faire tourner lentement la maquette sur l'écran d'accueil.
-- Recevoir `focusRoom` et `focusElement`, et envoyer `roomChanged`.
-- Régler l'éclairage et les matériaux neutres.
+### Antoine : l'appartement et la caméra
 
-Côté Vue :
+| # | Côté | Tâche | Attend |
+| - | ---- | ----- | ------ |
+| A1 | Unity | Construire les 3 pièces avec ProBuilder : salon avec l'entrée, chambre, cuisine, murs à mi-hauteur, style maquette. | ✓ |
+| A2 | Unity | Placer les 10 éléments, avec les compteurs près de l'entrée. Poser sur chacun un collider et un `InspectableElement` avec les clés du JSON. Prefab `Appartement`. | A1 |
+| A3 | Unity | Faire tourner la caméra au clic droit et zoomer à la molette. Prefab `CameraRig`. | ✓ |
+| A4 | Unity | Garder la caméra au-dessus des murs, sans traverser les cloisons. | A1, A3 |
+| A5 | Unity | Déplacer la caméra vers une pièce en environ une seconde : recevoir `focusRoom`, envoyer `roomChanged`. | A3 |
+| A6 | Vue | `RoomButtons.vue` : boutons Salon, Chambre et Cuisine, pièce courante mise à jour par `roomChanged`. | A5 |
+| A7 | Unity | Rapprocher la caméra d'un élément : au clic, et à la réception de `focusElement`. | A5 |
+| A8 | Unity | Régler l'éclairage doux et les matériaux neutres, surveiller la taille du build. | A2 |
 
-- Ajouter les boutons Salon, Chambre et Cuisine, qui envoient `focusRoom`.
-- Mettre à jour la pièce courante à la réception de `roomChanged`.
+### Noah : cliquer sur un élément et le noter
 
-Livrables : les prefabs `Appartement` et `CameraRig`, le composant `RoomButtons.vue`.
+| # | Côté | Tâche | Attend |
+| - | ---- | ----- | ------ |
+| B1 | Unity + Vue | Créer `Main.unity` avec son GameObject `WebBridge`. Dans `useUnity`, mettre en attente les messages envoyés avant `ready`. | ✓ |
+| B2 | Unity | Illuminer l'élément survolé, dans une couleur réservée au survol. | cubes de test |
+| B3 | Unity | Détecter le clic sur un élément et envoyer `pointSelected`. Détecter le clic dans le vide et envoyer `deselected`. Recevoir `select`. | B2 |
+| B4 | Vue | `ElementCard.vue` : nom, pièce, choix de l'état, commentaire, bouton Valider. Échap ferme la fiche. | B3 |
+| B5 | Vue | Enregistrer les constats avec `EdlRepository.saveConstat`. Ajouter un bouton qui charge le jeu de démo avec `loadDemo`. Valider le JSON dans `JsonRepository`. | B4 |
+| B6 | Vue | `MeterCard.vue` : saisie de l'index et calcul de la consommation entre l'entrée et la sortie. | B4 |
+| B7 | Unity | Jouer un son court à la validation d'un constat. | B4 |
+| B8 | Vue | Afficher un écran de chargement, et une erreur si le build ne se charge pas. | B1 |
 
-## Lot B. Inspection et fiche
+### Sara : l'accueil, les couleurs et la comparaison
 
-Côté Unity :
+| # | Côté | Tâche | Attend |
+| - | ---- | ----- | ------ |
+| C1 | Vue | `HomeScreen.vue` : nom du logement en haut, boutons Entrée, Sortie et Comparer par-dessus la 3D. Entrée est mis en avant. Sortie et Comparer restent désactivés tant que l'entrée n'est pas faite. | ✓ |
+| C2 | Unity | Faire tourner lentement la maquette en mode `accueil` (message `init`). | ✓ |
+| C3 | Unity | Prefab `PointMarker` : un repère vert, orange ou rouge sur chaque élément noté. Recevoir `setPoints`. On peut cliquer sur le repère. | cubes de test |
+| C4 | Vue | `ModeSwitch.vue` : passer d'un mode à l'autre, envoyer `init` puis `setPoints`. Après un clic sur Entrée, envoyer `focusRoom` vers le salon et afficher le message d'aide. | C1 |
+| C5 | Vue | `comparaison.ts` : trouver les éléments dégradés entre l'entrée et la sortie. | ✓ |
+| C6 | Unity | En mode Comparer, faire passer progressivement au rouge les éléments dégradés. | C3, C5 |
+| C7 | Vue | `DefectList.vue` : liste des défauts. Un clic sur un défaut envoie `focusElement`. | C4, A7 |
+| C8 | Unity | Ajouter un effet visuel quand un repère apparaît. | C3 |
 
-- Terminer `WebBridge`, avec la gestion d'erreurs et les logs.
-- Illuminer l'élément survolé, dans une couleur réservée au survol.
-- Détecter le clic sur un élément et envoyer `pointSelected`. Détecter le clic dans le
-  vide et envoyer `deselected`.
-- Mettre en surbrillance l'élément reçu par `select`.
-- Jouer un son court à la validation d'un constat.
-- Créer la scène principale `Main.unity` et son GameObject `WebBridge`.
+## Qui attend qui
 
-Côté Vue :
+- **Les cubes de test d'Antoine** débloquent B2 pour Noah et C3 pour Sara. Antoine les
+  fait en premier.
+- **Les constats enregistrés par Noah (B5)** servent aux modes de Sara (C4). En
+  attendant, Sara utilise le jeu de démo.
+- **Le rapprochement de la caméra d'Antoine (A7)** est nécessaire à la liste des
+  défauts de Sara (C7).
+- **La rotation de l'accueil (C2)** fait tourner la maquette, pas la caméra. Sara et
+  Antoine se mettent d'accord pour que C2 ne touche pas au `CameraRig`.
+- L'appartement d'Antoine (A2) ne bloque personne : Noah et Sara développent sur les
+  cubes de test, puis passent à l'appartement quand il est prêt.
 
-- Terminer `useUnity`, avec la mise en attente des messages avant `ready`.
-- Créer la fiche d'un élément : nom, pièce, choix de l'état, commentaire, bouton Valider.
-  Échap ferme la fiche.
-- Créer la fiche d'un compteur : saisie de l'index et calcul de la consommation entre
-  l'entrée et la sortie.
-- Brancher la fiche sur `EdlRepository.saveConstat`, qui enregistre déjà les constats
-  dans le `localStorage`. Ajouter un bouton qui charge le jeu de démo avec `loadDemo`.
-- Valider le contenu du JSON dans `JsonRepository`.
+## Les étapes
 
-Livrables : la scène `Main.unity`, les composants `ElementCard.vue` et `MeterCard.vue`.
+On passe à l'étape suivante quand la précédente marche dans le build WebGL affiché par
+la page.
 
-## Lot C. Repères, modes et comparaison
+1. **Noter un élément** (fonctionnalités 1 et 2). Sur les cubes de test : survoler,
+   cliquer, noter, voir le repère coloré. Tâches B2, B3, B4 et C3.
+2. **Faire une entrée complète** dans le vrai appartement : accueil, Entrée, changer de
+   pièce, noter, enregistrer. Tâches A2 à A6, B5, C1, C2 et C4.
+3. **Comparer l'entrée et la sortie** (fonctionnalités 3 à 6). Tâches A7, B6, C5, C6 et
+   C7. Après cette étape, on n'ajoute plus de fonctionnalité.
+4. **Finir.** Tâches A8, B7, B8 et C8. Chacun teste le travail d'un autre : Antoine teste
+   celui de Noah, Noah celui de Sara, Sara celui d'Antoine.
+5. **Rendre.** On corrige, on fait le build final, on met le README à jour et on prépare
+   la soutenance.
 
-Côté Unity :
-
-- Afficher un repère coloré sur chaque élément noté : vert pour Bon, orange pour
-  Usage, rouge pour Mauvais. On peut cliquer sur le repère.
-- Recevoir `setPoints` et mettre à jour les repères.
-- En mode Comparer, faire passer progressivement au rouge les éléments dégradés.
-- Afficher un effet visuel quand un repère apparaît.
-
-Côté Vue :
-
-- Créer l'écran d'accueil : nom du logement en haut, boutons Entrée, Sortie et
-  Comparer. Entrée est mis en avant. Sortie et Comparer sont désactivés tant que l'entrée
-  n'est pas faite.
-- Après un clic sur Entrée, envoyer `focusRoom` vers le salon et afficher le message
-  d'aide.
-- Écrire `comparaison.ts`, qui trouve les éléments dégradés entre l'entrée et la sortie.
-- Envoyer `setPoints` à chaque constat validé et à chaque changement de mode.
-- En mode Comparer, afficher la liste des défauts. Un clic sur un défaut envoie
-  `focusElement`.
-
-Livrables : le prefab `PointMarker`, les composants `HomeScreen.vue`, `ModeSwitch.vue`
-et `DefectList.vue`, le module `comparaison.ts`.
-
-## Dépendances
-
-Le contrat de messages bloque tout le reste. On le met à jour et on le valide à trois en
-semaine 1. Ensuite :
-
-- La maquette du lot A permet au lot B de tester le survol et le clic sur les vrais
-  objets, et au lot C de placer les repères.
-- Le pont du lot B et la scène `Main.unity` permettent aux lots A et C de tester dans la
-  page.
-- La fiche du lot B produit les constats dont le lot C a besoin pour les repères et la
-  comparaison.
-
-Pour ne pas s'attendre les uns les autres :
-
-- Avant que la maquette existe, les lots B et C travaillent sur une scène de test avec
-  des cubes qui portent un `InspectableElement` et les vraies clés du JSON.
-- Le lot C peut tester ses repères et sa comparaison avec le jeu de démo, sans attendre
-  la fiche du lot B.
-- Côté Vue, une fausse version de `useUnity` écrit les messages envoyés dans la console
-  et simule `ready` et `pointSelected`. On peut ainsi développer l'interface sans build
-  WebGL.
-
-## Jalons
-
-Les jalons suivent l'ordre d'importance du cahier des charges. Les fonctionnalités 1 et
-2 doivent marcher en premier.
-
-| Semaine | Lot A | Lot B | Lot C | Objectif commun |
-| ------- | ----- | ----- | ----- | --------------- |
-| S1 | Plan de l'appartement avec les 10 éléments, premier contrôle de caméra | `Main.unity`, mise en attente des messages dans `useUnity` | Maquette de l'écran d'accueil et des couleurs d'état | Contrat validé, choix survol ou clic tranché, lots attribués |
-| S2 | Les 3 pièces en volumes simples, murs à mi-hauteur, `InspectableElement` sur les 10 éléments | Survol, clic, `pointSelected`, fiche d'un élément | Repère coloré sur la scène de test, `setPoints` reçu | Fonctionnalités 1 et 2 sur la scène de test : survoler, cliquer, noter, voir le repère |
-| S3 | Vues pièce et élément, transitions, caméra bloquée au-dessus des murs, boutons de pièces | Sauvegarde des constats, Échap et clic dans le vide | Écran d'accueil, modes Entrée et Sortie | Démo intermédiaire : une inspection d'entrée complète dans la vraie maquette |
-| S4 | Rotation sur l'accueil, `focusElement` | Fiche compteur et consommation, son de validation | Mode Comparer, passage au rouge, liste des défauts | Fonctionnalités 1 à 6 en place, plus d'ajout après cette semaine |
-| S5 | Éclairage, matériaux, taille du build | Erreurs et états de chargement | Effets d'apparition des repères, lisibilité | Chacun teste le lot d'un autre |
-| S6 | Corrections | Corrections | Corrections | Rendu : build final, README, soutenance |
+Si le temps manque, on retire dans cet ordre : la liste des défauts (C7) et le
+rapprochement de la caméra (A7), puis la fiche des compteurs (B6), puis les effets et le
+son (C8, B7).
 
 ## Règles pour éviter les conflits dans Unity
 
 Git fusionne mal les scènes et les prefabs Unity. On suit donc ces règles :
 
-1. La scène principale `Assets/Scenes/Main.unity` a un seul propriétaire, le lot B. Les
-   autres ne la modifient pas. Ils demandent au propriétaire d'y ajouter leur prefab,
-   ou ouvrent une PR dédiée après l'avoir prévenu.
+1. La scène principale `Assets/Scenes/Main.unity` a un seul propriétaire : Noah.
+   Antoine et Sara ne la modifient pas. Ils demandent à Noah d'y ajouter leur prefab, ou
+   ouvrent une PR dédiée après l'avoir prévenu.
 2. Chacun travaille dans ses propres prefabs et sa propre scène de test :
-   - lot A dans `Assets/Lot-A/`, avec `Appartement`, `CameraRig` et `Lot-A_Sandbox.unity` ;
-   - lot B dans `Assets/Lot-B/` et `Assets/Scripts/Bridge/` ;
-   - lot C dans `Assets/Lot-C/`, avec `PointMarker`, les matériaux d'état et
-     `Lot-C_Sandbox.unity`.
+   - Antoine dans `Assets/Lot-A/`, avec `Appartement`, `CameraRig`, `Lot-A_Sandbox.unity`
+     et la scène de test avec les 10 cubes ;
+   - Noah dans `Assets/Lot-B/` et `Assets/Scripts/Bridge/` ;
+   - Sara dans `Assets/Lot-C/`, avec `PointMarker`, les matériaux d'état, la rotation de
+     l'accueil et `Lot-C_Sandbox.unity`.
 
    On place des prefabs dans la scène plutôt que des objets isolés.
 3. Tout le monde configure UnityYAMLMerge avec la commande du README. Le fichier
@@ -277,8 +250,9 @@ Git fusionne mal les scènes et les prefabs Unity. On suit donc ces règles :
 
 - `main` marche toujours : Unity ouvre le projet sans erreur et `npm run build` passe.
   Personne ne pousse directement sur `main`.
-- Une branche par tâche, nommée d'après le lot : `lot-a/camera`, `lot-b/fiche-element`,
-  `lot-c/reperes`. On utilise aussi `contrat/...`, `fix/...` et `docs/...`.
+- Une branche par tâche, nommée d'après le lot : `lot-a/camera` pour Antoine,
+  `lot-b/fiche-element` pour Noah, `lot-c/reperes` pour Sara. On utilise aussi
+  `contrat/...`, `fix/...` et `docs/...`.
 - Les messages de commit sont en français, au présent, avec un préfixe : `feat`, `fix`,
   `docs`, `chore` ou `refactor`. Par exemple :
   `feat(lot-c): couleurs des repères par état`.
