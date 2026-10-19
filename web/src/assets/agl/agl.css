@@ -1,0 +1,39 @@
+/* Tailwind 4 avec les jetons du design system AGL (Figma « AGL »). */
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Onest', system-ui, sans-serif;
+
+  --color-primary-100: #ffb8c1;
+  --color-primary-300: #a80032;
+  --color-accent-300: #ff7088;
+  --color-neutrals-50: #d1d5db;
+  --color-neutrals-100: #6b7280;
+  --color-neutrals-200: #4b5563;
+  --color-neutrals-300: #374151;
+  --color-neutrals-400: #33000f;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --text-h1: 32px;
+  --text-h1--line-height: 40px;
+  --text-h3: 20px;
+  --text-h3--line-height: 28px;
+  --text-body: 16px;
+  --text-body--line-height: 24px;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+
+  --shadow-raised: 0 1px 2px rgb(51 0 15 / 6%), 0 4px 12px rgb(51 0 15 / 6%);
+}
+
+@layer base {
+  body {
+    @apply bg-white font-sans text-body text-neutrals-400;
+    font-feature-settings:
+      'salt' 1,
+      'ss01' 1;
+  }
+}
