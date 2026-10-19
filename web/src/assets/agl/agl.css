@@ -1,0 +1,81 @@
+/* Jetons du design system AGL (Figma « AGL »), repris pour simuler la page qui accueille la 3D. */
+:root {
+  --font-family: 'Onest', system-ui, sans-serif;
+
+  --color-primary-100: #ffb8c1;
+  --color-primary-300: #a80032;
+  --color-accent-300: #ff7088;
+  --color-neutrals-white: #fff;
+  --color-neutrals-50: #d1d5db;
+  --color-neutrals-100: #6b7280;
+  --color-neutrals-200: #4b5563;
+  --color-neutrals-300: #374151;
+  --color-neutrals-400: #33000f;
+
+  --sidebar-background: var(--color-primary-300);
+  --sidebar-text-color: #fff;
+  --buttons-default: var(--color-primary-300);
+  --buttons-text-color: #fff;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  --size-h1: 32px;
+  --line-height-h1: 40px;
+  --size-h3: 20px;
+  --line-height-h3: 28px;
+  --size-body: 16px;
+  --line-height-body: 24px;
+  --size-caption: 12px;
+  --line-height-caption: 16px;
+  --size-overline: 12px;
+  --line-height-overline: 16px;
+
+  --elevation-raised: 0 1px 2px rgb(51 0 15 / 6%), 0 4px 12px rgb(51 0 15 / 6%);
+}
+
+body {
+  margin: 0;
+  background: var(--color-neutrals-white);
+  color: var(--color-neutrals-400);
+  font-family: var(--font-family);
+  font-feature-settings:
+    'salt' 1,
+    'ss01' 1;
+}
+
+/* Boutons Fill et Outline (Atoms/Actions/Button), taille Default 36 px. */
+.agl-bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 16px;
+  border: 2px solid var(--buttons-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-neutrals-white);
+  color: var(--buttons-default);
+  font: 400 var(--size-body) / var(--line-height-body) var(--font-family);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.agl-bouton--fill {
+  background: var(--buttons-default);
+  color: var(--buttons-text-color);
+}
+
+.agl-bouton:focus-visible {
+  outline: 2px solid var(--color-accent-300);
+  outline-offset: 2px;
+}
+
+.agl-bouton:disabled {
+  border-color: var(--color-neutrals-50);
+  background: var(--color-neutrals-white);
+  color: var(--color-neutrals-100);
+  cursor: not-allowed;
+}

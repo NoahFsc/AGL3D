@@ -10,3 +10,6 @@ Desktop.ini
 # IDE
 .idea/
 *.swp
+
+# Réglages locaux de Claude Code
+.claude/
