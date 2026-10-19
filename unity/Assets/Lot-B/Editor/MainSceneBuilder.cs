@@ -3,13 +3,15 @@ using AGL3D.Bridge;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace AGL3D.LotB.Editor
 {
     /// <summary>
     /// Crée la scène principale <c>Main.unity</c> et la place en tête des scènes du build.
-    /// Ne remplace jamais une scène existante : on la modifie ensuite dans l'Éditeur.
-    /// Menu : AGL3D > Lot B > Créer la scène principale.
+    /// Ne remplace jamais une scène existante : sur une scène déjà créée, ajoute seulement
+    /// le prefab <c>Interaction</c> du lot B s'il manque.
+    /// Menu : AGL3D > Lot B > Créer ou compléter la scène principale.
     /// Batchmode : -executeMethod AGL3D.LotB.Editor.MainSceneBuilder.Build
     /// </summary>
     public static class MainSceneBuilder
@@ -19,16 +21,43 @@ namespace AGL3D.LotB.Editor
         // Cubes de test du lot A, en attendant le prefab Appartement (A2).
         private const string TestCubesPrefabPath = "Assets/Lot-A/TestCubes/TestCubes.prefab";
 
-        [MenuItem("AGL3D/Lot B/Créer la scène principale")]
+        /// <summary>Prefab du lot B qui porte le survol (B2), puis le clic (B3).</summary>
+        private const string InteractionPrefabPath = "Assets/Lot-B/Interaction.prefab";
+
+        [MenuItem("AGL3D/Lot B/Créer ou compléter la scène principale")]
         public static void Build()
         {
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null)
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null) CreateScene();
+
+            var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            var interaction = GetOrCreateInteractionPrefab();
+            bool present = scene.GetRootGameObjects()
+                .Any(go => PrefabUtility.GetCorrespondingObjectFromSource(go) == interaction);
+            if (!present)
             {
-                Debug.LogWarning($"[MainSceneBuilder] {ScenePath} existe déjà, rien n'est remplacé.");
-                AddToBuildSettings();
-                return;
+                PrefabUtility.InstantiatePrefab(interaction, scene);
+                EditorSceneManager.SaveScene(scene);
+                Debug.Log($"[MainSceneBuilder] Prefab Interaction ajouté à {ScenePath}.");
             }
 
+            AddToBuildSettings();
+            AssetDatabase.SaveAssets();
+        }
+
+        private static GameObject GetOrCreateInteractionPrefab()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(InteractionPrefabPath);
+            if (prefab != null) return prefab;
+
+            var root = new GameObject("Interaction", typeof(HoverHighlighter));
+            prefab = PrefabUtility.SaveAsPrefabAsset(root, InteractionPrefabPath);
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static void CreateScene()
+        {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             // Caméra provisoire, remplacée par le prefab CameraRig du lot A (A3).
@@ -58,8 +87,6 @@ namespace AGL3D.LotB.Editor
             else Debug.LogWarning($"[MainSceneBuilder] Prefab introuvable : {TestCubesPrefabPath}");
 
             EditorSceneManager.SaveScene(scene, ScenePath);
-            AddToBuildSettings();
-            AssetDatabase.SaveAssets();
             Debug.Log($"[MainSceneBuilder] {ScenePath} créée.");
         }
 
