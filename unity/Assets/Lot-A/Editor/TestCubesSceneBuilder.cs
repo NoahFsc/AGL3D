@@ -20,7 +20,7 @@ namespace AGL3D.LotA.Editor
     public static class TestCubesSceneBuilder
     {
         private const string Root = "Assets/Lot-A/TestCubes";
-        private const string ScenePath = Root + "/Lot-A_TestCubes.unity";
+        private const string ScenePath = "Assets/Scenes/Lot-A_TestCubes.unity";
         private const string PrefabPath = Root + "/TestCubes.prefab";
         private const string MaterialsDir = Root + "/Materials";
         private const string DataPath = "../web/public/data/appart-demo/appart-demo.json";
