@@ -28,7 +28,7 @@ namespace AGL3D.LotA
 
         [Header("Zoom")]
         [SerializeField] private float distance = 10f;
-        [SerializeField] private float minDistance = 4f;
+        [SerializeField] private float minDistance = 2f;
         [SerializeField] private float maxDistance = 16f;
         [Tooltip("Part de la distance parcourue par cran de molette.")]
         [SerializeField] private float zoomStep = 0.15f;
@@ -55,6 +55,9 @@ namespace AGL3D.LotA
 
         /// <summary>Vrai pendant un déplacement lancé par <see cref="MoveTo"/>.</summary>
         public bool IsMoving => moving;
+
+        /// <summary>Orientation horizontale visée, en degrés.</summary>
+        public float Yaw => yaw;
 
         /// <summary>
         /// Amène la caméra vers une autre vue en <paramref name="duration"/> secondes, avec un
