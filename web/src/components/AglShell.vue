@@ -1,4 +1,17 @@
 <script setup lang="ts">
+/**
+ * Habillage de l'application AGL (menu latéral, fil d'Ariane, en-tête de page), repris
+ * de la maquette Figma « Propriétaire · 09.1 · État des lieux ». Il simule la page qui
+ * accueillera la 3D : les liens ne mènent nulle part. Le contenu de la page va dans le slot.
+ *
+ * - Ordinateur : menu de 300 px, que « Réduire le menu » replie en 92 px (icônes seules,
+ *   libellé en infobulle au survol). Le choix est retenu dans le navigateur.
+ * - Tablette (< 1024 px) : le menu démarre replié.
+ * - Mobile (< 768 px) : barre de 56 px avec le titre centré et le burger ; le menu s'ouvre
+ *   par-dessus la page et le fil d'Ariane disparaît.
+ *
+ * Props : `filAriane` (le dernier niveau est la page courante), `titre`, `sousTitre`.
+ */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import logo from '@/assets/agl/logo.svg'
 import deconnexion from '@/assets/agl/deconnexion.svg'
@@ -19,20 +32,7 @@ import navEtatsDesLieux from '@/assets/agl/nav-etats-des-lieux.svg'
 import navEcheances from '@/assets/agl/nav-echeances.svg'
 import navMessagerie from '@/assets/agl/nav-messagerie.svg'
 
-/*
- * Habillage de l'application AGL (menu latéral, fil d'Ariane, en-tête de page), repris
- * de la maquette Figma « Propriétaire · 09.1 · État des lieux ». Il simule la page qui
- * accueillera la 3D : les liens ne mènent nulle part.
- *
- * - Ordinateur : menu de 300 px, que « Réduire le menu » replie en 92 px (icônes seules,
- *   libellé en infobulle au survol). Le choix est retenu dans le navigateur.
- * - Tablette (< 1024 px) : le menu démarre replié.
- * - Mobile (< 768 px) : barre de 56 px avec le titre centré, le menu s'ouvre par-dessus
- *   la page avec le bouton burger.
- */
-
 defineProps<{
-  /** Niveaux du fil d'Ariane ; le dernier est la page courante. */
   filAriane: string[]
   titre: string
   sousTitre?: string
@@ -54,33 +54,47 @@ const CLE_MENU_REDUIT = 'agl3d:menu-reduit'
 const reduit = ref(false)
 const ouvertMobile = ref(false)
 
+/**
+ * Reprend le choix « menu réduit » enregistré, ou réduit le menu par défaut sur tablette,
+ * puis écoute Échap pour fermer le menu mobile.
+ */
 onMounted(() => {
-  let choix: string | null = null
-  try {
-    choix = localStorage.getItem(CLE_MENU_REDUIT)
-  } catch {
-    // Stockage indisponible : on garde la valeur par défaut.
-  }
+  const choix = lirePreference()
   reduit.value = choix === null ? window.innerWidth < 1024 : choix === '1'
   document.addEventListener('keydown', fermerAvecEchap)
 })
 
+/** Retire l'écoute d'Échap. */
 onBeforeUnmount(() => document.removeEventListener('keydown', fermerAvecEchap))
 
+/**
+ * Lit le choix « menu réduit » du navigateur. Renvoie `null` s'il n'existe pas ou si
+ * le stockage est indisponible.
+ */
+function lirePreference(): string | null {
+  try {
+    return localStorage.getItem(CLE_MENU_REDUIT)
+  } catch {
+    return null
+  }
+}
+
+/** Réduit ou ouvre le menu, et retient ce choix dans le navigateur s'il le permet. */
 function basculerMenu() {
   reduit.value = !reduit.value
   try {
     localStorage.setItem(CLE_MENU_REDUIT, reduit.value ? '1' : '0')
-  } catch {
-    // Préférence non retenue : sans conséquence.
+  } catch (e) {
+    console.warn('[AglShell] Choix du menu non enregistré', e)
   }
 }
 
+/** Ferme le menu mobile quand on appuie sur Échap. */
 function fermerAvecEchap(event: KeyboardEvent) {
   if (event.key === 'Escape') ouvertMobile.value = false
 }
 
-// Le menu mobile ouvert bloque le défilement de la page derrière lui.
+/** Bloque le défilement de la page tant que le menu mobile est ouvert. */
 watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert', ouvert))
 </script>
 
@@ -155,7 +169,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
     <div class="agl__voile" aria-hidden="true" @click="ouvertMobile = false"></div>
 
     <div class="main">
-      <!-- Mobile : Page Header Platform=Mobile, avec le burger à la place du retour. -->
       <header class="barre-mobile">
         <button
           type="button"
@@ -197,7 +210,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
         </div>
       </div>
 
-      <!-- Organisms/Navigation/Page Header -->
       <header class="entete">
         <h1 class="entete__titre">{{ titre }}</h1>
         <p v-if="sousTitre" class="entete__sous-titre">{{ sousTitre }}</p>
@@ -214,7 +226,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   min-height: 100vh;
 }
 
-/* Organisms/Navigation/Sidebar */
 .sidebar {
   position: sticky;
   top: 0;
@@ -339,7 +350,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   text-overflow: ellipsis;
 }
 
-/* Atoms/Data display/Counter */
 .sidebar__compteur {
   padding: 2px 8px;
   border-radius: var(--radius-full);
@@ -350,7 +360,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   line-height: var(--line-height-caption);
 }
 
-/* Infobulle du menu replié (Nav Item, Collapsed). */
 .sidebar__infobulle {
   display: none;
   position: absolute;
@@ -425,7 +434,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   display: flex;
 }
 
-/* ---------- Menu replié : Sidebar Collapsed=true, 92 px (pas sur mobile) ---------- */
 @media (width >= 768px) {
   .agl--reduit .sidebar {
     align-items: center;
@@ -469,7 +477,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   display: none;
 }
 
-/* ---------- Contenu ---------- */
 .main {
   display: flex;
   flex: 1;
@@ -491,7 +498,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   gap: 12px;
 }
 
-/* Molecules/Navigation/Breadcrumb */
 .fil {
   display: flex;
   flex-wrap: wrap;
@@ -520,7 +526,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   margin-left: auto;
 }
 
-/* Atoms/Data display/Badge, Status=Neutral */
 .badge {
   display: flex;
   align-items: center;
@@ -537,7 +542,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   white-space: nowrap;
 }
 
-/* Atoms/Actions/Icon Button */
 .topbar__notifications {
   display: flex;
   align-items: center;
@@ -569,7 +573,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   line-height: var(--line-height-body);
 }
 
-/* ---------- Tablette ---------- */
 @media (width < 1024px) {
   .main {
     gap: 32px;
@@ -577,9 +580,7 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
   }
 }
 
-/* ---------- Mobile ---------- */
 @media (width < 768px) {
-  /* Le menu complet s'ouvre par-dessus la page, quel que soit le choix « réduit ». */
   .sidebar {
     position: fixed;
     top: 0;
@@ -628,7 +629,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
     padding: 0 16px 24px;
   }
 
-  /* Page Header Platform=Mobile : 56 px, titre centré. Le fil d'Ariane disparaît. */
   .barre-mobile {
     position: sticky;
     top: 0;
@@ -698,7 +698,6 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
 </style>
 
 <style>
-/* Menu mobile ouvert : la page derrière ne défile pas. */
 body.agl-menu-ouvert {
   overflow: hidden;
 }

@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * Page de démonstration : la 3D Unity dans une page au style AGL.
+ *
+ * Charge le logement depuis `edlRepository`, affiche l'écran d'accueil par-dessus la 3D
+ * et transmet le mode choisi à Unity avec le message `init`.
+ */
 import { computed, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
 import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
@@ -17,6 +23,7 @@ const mode = ref<ModeAffichage>('accueil')
 const entreeFaite = ref(false)
 const unityPret = ref(false)
 
+/** Charge le nom et l'adresse du logement, et vérifie si l'entrée est déjà faite. */
 onMounted(async () => {
   try {
     const [dossier, edls] = await Promise.all([
@@ -40,16 +47,21 @@ const LIBELLES_MODE: Record<ModeAffichage, string> = {
 
 const filAriane = computed(() => ['États des lieux', titre.value, LIBELLES_MODE[mode.value]])
 
+/** Envoie le mode courant à Unity avec le message `init`. */
 function envoyerMode() {
   viewer.value?.send('init', { dossierId: DOSSIER_ID, mode: mode.value })
 }
 
+/**
+ * Retient le mode choisi sur l'écran d'accueil. Avant `ready`, Unity ne reçoit rien :
+ * le mode lui est alors envoyé à la réception de `ready`.
+ */
 function choisir(nouveauMode: ModeChoisi) {
   mode.value = nouveauMode
-  // Avant `ready`, Unity ne reçoit rien : le mode part à la réception de `ready`.
   if (unityPret.value) envoyerMode()
 }
 
+/** Journalise chaque message Unity ; à `ready`, envoie le mode courant. */
 function onMessage(message: UnityToVueMessage) {
   console.info('[AGL3D] Unity -> Vue', message)
   received.value.unshift(message)
@@ -83,7 +95,6 @@ function onMessage(message: UnityToVueMessage) {
 </template>
 
 <style scoped>
-/* Même carte que les colonnes de la maquette : bord neutre, coins de 16 px. */
 .carte {
   overflow: hidden;
   border: 1px solid var(--color-neutrals-50);
@@ -94,7 +105,6 @@ function onMessage(message: UnityToVueMessage) {
   position: relative;
 }
 
-/* Sur mobile, une 3D en 16:9 serait trop basse sous les boutons. */
 @media (width < 768px) {
   .scene :deep(.viewer) {
     aspect-ratio: 4 / 5;

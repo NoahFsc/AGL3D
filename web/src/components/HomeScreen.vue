@@ -1,13 +1,20 @@
 <script setup lang="ts">
+/**
+ * Écran d'accueil posé par-dessus la 3D : boutons Entrée, Sortie et Comparer.
+ *
+ * - En mode `accueil`, Entrée est mis en avant ; ensuite, le mode en cours l'est.
+ * - Sortie et Comparer restent désactivés tant que `entreeFaite` est faux.
+ * - Seuls les boutons captent la souris : le reste laisse passer les clics et le
+ *   glisser vers le canvas Unity.
+ * - Émet `choisir` avec le mode cliqué.
+ */
 import type { ModeAffichage } from '@/types/bridge'
 
 /** Modes qu'on choisit depuis l'écran d'accueil. */
 export type ModeChoisi = Exclude<ModeAffichage, 'accueil'>
 
 defineProps<{
-  /** Mode courant : en `accueil`, Entrée est mis en avant. */
   mode: ModeAffichage
-  /** Sortie et Comparer restent désactivés tant que l'entrée n'est pas faite. */
   entreeFaite: boolean
 }>()
 
@@ -21,8 +28,6 @@ const boutons: { mode: ModeChoisi; label: string; apresEntree: boolean }[] = [
 </script>
 
 <template>
-  <!-- Posé par-dessus la 3D : seuls les boutons captent la souris, le reste laisse
-       passer les clics et le glisser vers le canvas Unity. -->
   <div class="home">
     <nav class="home__modes" aria-label="Choix de l'état des lieux">
       <button
@@ -62,12 +67,10 @@ const boutons: { mode: ModeChoisi; label: string; apresEntree: boolean }[] = [
   pointer-events: auto;
 }
 
-/* Elevation/Raised : les boutons se détachent de la 3D. */
 .home__bouton {
   box-shadow: var(--elevation-raised);
 }
 
-/* Mobile : bouton Size=Large (48 px), les trois se partagent la largeur. */
 @media (width < 768px) {
   .home {
     padding: 12px;

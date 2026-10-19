@@ -1,4 +1,8 @@
-/* Jetons du design system AGL (Figma « AGL »), repris pour simuler la page qui accueille la 3D. */
+/*
+ * Design system AGL (Figma « AGL »), repris pour simuler la page qui accueille la 3D :
+ * jetons de couleurs, rayons et typographie, styles de base de la page, et boutons
+ * `.agl-bouton` (Outline) et `.agl-bouton--fill` (Fill), taille Default 36 px.
+ */
 :root {
   --font-family: 'Onest', system-ui, sans-serif;
 
@@ -46,7 +50,6 @@ body {
     'ss01' 1;
 }
 
-/* Boutons Fill et Outline (Atoms/Actions/Button), taille Default 36 px. */
 .agl-bouton {
   display: inline-flex;
   align-items: center;
