@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 282894667662165502}
   - component: {fileID: 3838731545537439458}
   - component: {fileID: 7207818487126117682}
+  - component: {fileID: 2746892271070113355}
+  - component: {fileID: 1139637989881858904}
   m_Layer: 0
   m_Name: CameraRig
   m_TagString: MainCamera
@@ -112,7 +114,37 @@ MonoBehaviour:
   maxPitch: 88
   rotateSpeed: 0.25
   distance: 10
-  minDistance: 4
+  minDistance: 2
   maxDistance: 16
   zoomStep: 0.15
+  minHeight: 1.6
+  collisionRadius: 0.25
   smoothTime: 0.1
+--- !u!114 &2746892271070113355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8813818369709153541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c09826c8e99824f9dbbebb02c93b2248, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AGL3D.LotA.RoomFocus
+  duration: 1
+--- !u!114 &1139637989881858904
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8813818369709153541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 789963285350e45b195a25a7fb3549f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AGL3D.LotA.ElementFocus
+  duration: 1
+  distance: 2.5
+  pitch: 50
