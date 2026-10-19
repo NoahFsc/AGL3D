@@ -24,8 +24,8 @@ const BRIDGE_METHOD = 'Receive'
 
 /**
  * Charge le build Unity WebGL dans `canvas` et expose le pont de messages.
- * Squelette : la gestion fine des erreurs et de la file d'attente avant `ready`
- * est à compléter (lot B, voir docs/PLAN.md).
+ * Les messages envoyés avant `ready` sont mis en attente, puis envoyés dans l'ordre
+ * dès que Unity est chargé et a envoyé `ready` (docs/contrat-messages.md, Démarrage).
  */
 export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnityOptions = {}) {
   const {
@@ -39,18 +39,40 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
   const progress = ref(0)
   const isLoaded = ref(false)
   const error = ref<Error | null>(null)
+  /** Vrai quand Unity a envoyé `ready` : les messages partent directement. */
+  const isReady = ref(false)
+
+  /** Messages JSON en attente de `ready`, dans l'ordre d'envoi. */
+  let pending: string[] = []
 
   function send<T extends VueToUnityType>(type: T, payload: VueToUnityPayloads[T]): void {
-    if (!instance.value) {
-      // TODO(lot B) : mettre en file d'attente jusqu'à `ready` plutôt que d'ignorer.
-      console.warn(`[useUnity] message « ${type} » ignoré : Unity n'est pas chargé`)
+    const json = JSON.stringify({ type, payload })
+    if (!instance.value || !isReady.value) {
+      pending.push(json)
       return
     }
-    instance.value.SendMessage(BRIDGE_OBJECT, BRIDGE_METHOD, JSON.stringify({ type, payload }))
+    instance.value.SendMessage(BRIDGE_OBJECT, BRIDGE_METHOD, json)
+  }
+
+  /**
+   * Envoie les messages en attente. `ready` peut arriver avant la fin de
+   * `createUnityInstance` : on attend donc d'avoir à la fois l'instance et `ready`.
+   */
+  function flush(): void {
+    const current = instance.value
+    if (!current || !isReady.value) return
+    const queue = pending
+    pending = []
+    for (const json of queue) current.SendMessage(BRIDGE_OBJECT, BRIDGE_METHOD, json)
   }
 
   function handleEvent(event: Event): void {
     const message = (event as CustomEvent<UnityToVueMessage>).detail
+    if (message.type === 'ready') {
+      isReady.value = true
+      // Les messages en attente partent avant ceux que onMessage enverra en réponse.
+      flush()
+    }
     onMessage?.(message)
   }
 
@@ -85,6 +107,7 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
         (p) => (progress.value = p),
       )
       isLoaded.value = true
+      flush()
     } catch (e) {
       error.value = e instanceof Error ? e : new Error(String(e))
     }
@@ -95,8 +118,10 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
     const current = instance.value
     instance.value = null
     isLoaded.value = false
+    isReady.value = false
+    pending = []
     await current?.Quit()
   })
 
-  return { instance, progress, isLoaded, error, send }
+  return { instance, progress, isLoaded, isReady, error, send }
 }

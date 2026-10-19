@@ -102,9 +102,9 @@ Chacun de nous travaille à la fois dans Unity et dans Vue.
 ### Ce qui marche
 
 La connexion entre Unity et Vue est faite. La page Vue charge le build Unity WebGL, et
-les deux côtés s'échangent des messages. Dans la scène de test `SampleScene`, un cube
-porte un `InspectableElement` avec la clé `salon.mur-ouest`. Au démarrage, Unity envoie
-`ready {"keys":["salon.mur-ouest"]}` et la page l'affiche.
+les deux côtés s'échangent des messages. Le build contient une seule scène, `Main.unity`,
+avec l'appartement et ses 10 éléments. Au démarrage, Unity envoie `ready` avec leurs clés
+et la page l'affiche. Les messages que Vue envoie avant `ready` sont mis en attente.
 
 Le dépôt contient déjà :
 
@@ -125,8 +125,6 @@ Le dépôt contient déjà :
 
 - Aucun script Unity ne réagit encore aux messages reçus. `WebBridge` les reçoit, puis
   affiche un avertissement "Aucun abonné".
-- `useUnity` ignore les messages envoyés avant `ready` au lieu de les mettre en attente.
-- La scène principale `Main.unity` n'existe pas. On teste dans `SampleScene`.
 - La caméra est fixe.
 - Le fichier de démo ne référence aucune photo. Le champ `photo` existe dans les
   constats, mais vaut `null`.
