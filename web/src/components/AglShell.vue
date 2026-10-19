@@ -1,16 +1,7 @@
 <script setup lang="ts">
 /**
- * Habillage de l'application AGL (menu latéral, fil d'Ariane, en-tête de page), repris
- * de la maquette Figma « Propriétaire · 09.1 · État des lieux ». Il simule la page qui
- * accueillera la 3D : les liens ne mènent nulle part. Le contenu de la page va dans le slot.
- *
- * - Ordinateur : menu de 300 px, que « Réduire le menu » replie en 92 px (icônes seules,
- *   libellé en infobulle au survol). Le choix est retenu dans le navigateur.
- * - Tablette (< 1024 px) : le menu démarre replié.
- * - Mobile (< 768 px) : barre de 56 px avec le titre centré et le burger ; le menu s'ouvre
- *   par-dessus la page et le fil d'Ariane disparaît.
- *
- * Props : `filAriane` (le dernier niveau est la page courante), `titre`, `sousTitre`.
+ * Habillage de l'application AGL repris de Figma (menu, fil d'Ariane, en-tête), autour
+ * du contenu passé dans le slot. Menu réductible sur ordinateur, burger sur mobile.
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import logo from '@/assets/agl/logo.svg'
@@ -54,23 +45,16 @@ const CLE_MENU_REDUIT = 'agl3d:menu-reduit'
 const reduit = ref(false)
 const ouvertMobile = ref(false)
 
-/**
- * Reprend le choix « menu réduit » enregistré, ou réduit le menu par défaut sur tablette,
- * puis écoute Échap pour fermer le menu mobile.
- */
+/** Reprend le choix enregistré, sinon réduit le menu sur tablette. */
 onMounted(() => {
   const choix = lirePreference()
   reduit.value = choix === null ? window.innerWidth < 1024 : choix === '1'
   document.addEventListener('keydown', fermerAvecEchap)
 })
 
-/** Retire l'écoute d'Échap. */
 onBeforeUnmount(() => document.removeEventListener('keydown', fermerAvecEchap))
 
-/**
- * Lit le choix « menu réduit » du navigateur. Renvoie `null` s'il n'existe pas ou si
- * le stockage est indisponible.
- */
+/** Lit le choix « menu réduit » du navigateur, `null` s'il n'y en a pas. */
 function lirePreference(): string | null {
   try {
     return localStorage.getItem(CLE_MENU_REDUIT)
@@ -79,7 +63,7 @@ function lirePreference(): string | null {
   }
 }
 
-/** Réduit ou ouvre le menu, et retient ce choix dans le navigateur s'il le permet. */
+/** Réduit ou ouvre le menu et retient ce choix. */
 function basculerMenu() {
   reduit.value = !reduit.value
   try {
@@ -89,27 +73,41 @@ function basculerMenu() {
   }
 }
 
-/** Ferme le menu mobile quand on appuie sur Échap. */
+/** Ferme le menu mobile avec Échap. */
 function fermerAvecEchap(event: KeyboardEvent) {
   if (event.key === 'Escape') ouvertMobile.value = false
 }
 
-/** Bloque le défilement de la page tant que le menu mobile est ouvert. */
-watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert', ouvert))
+watch(ouvertMobile, (ouvert) => document.body.classList.toggle('overflow-hidden', ouvert))
+
+const classeItem =
+  'group relative flex w-full cursor-pointer items-center gap-3 rounded-md p-3 text-left font-medium whitespace-nowrap text-white hover:bg-white/8 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white'
+const classeInfobulle =
+  'pointer-events-none absolute top-1/2 left-[calc(100%+12px)] z-50 hidden -translate-y-1/2 rounded-sm bg-neutrals-400 px-2 py-1 text-caption font-normal whitespace-nowrap text-white before:absolute before:top-1/2 before:right-full before:-translate-y-1/2 before:border-5 before:border-transparent before:border-r-neutrals-400 before:content-[""]'
 </script>
 
 <template>
-  <div class="agl" :class="{ 'agl--reduit': reduit, 'agl--mobile-ouvert': ouvertMobile }">
-    <aside id="agl-menu" class="sidebar" aria-label="Menu AGL">
-      <div class="sidebar__marque">
-        <span class="sidebar__logo"><img :src="logo" alt="" /></span>
-        <span class="sidebar__nom">
-          <strong>AGL</strong>
-          <small>Aide à la Gestion Locative</small>
+  <div class="flex min-h-screen">
+    <aside
+      id="agl-menu"
+      aria-label="Menu AGL"
+      class="fixed inset-y-0 left-0 z-40 flex w-[min(300px,85vw)] flex-col gap-8 overflow-y-auto bg-primary-300 px-6 py-8 text-white transition-[width,translate] duration-200 md:sticky md:top-0 md:h-screen md:shrink-0 md:translate-x-0 md:overflow-visible"
+      :class="[
+        ouvertMobile ? 'translate-x-0' : '-translate-x-full',
+        reduit ? 'md:w-[92px] md:items-center' : 'md:w-[300px]',
+      ]"
+    >
+      <div class="flex items-center gap-3 self-stretch" :class="{ 'md:justify-center': reduit }">
+        <span class="relative size-10 shrink-0">
+          <img :src="logo" alt="" class="absolute top-[2.4px] left-[4.59px]" />
+        </span>
+        <span class="flex flex-1 flex-col whitespace-nowrap" :class="{ 'md:hidden': reduit }">
+          <strong class="text-h3 font-semibold">AGL</strong>
+          <small class="text-caption">Aide à la Gestion Locative</small>
         </span>
         <button
           type="button"
-          class="sidebar__fermer"
+          class="flex cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-white md:hidden"
           aria-label="Fermer le menu"
           @click="ouvertMobile = false"
         >
@@ -117,62 +115,131 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
         </button>
       </div>
 
-      <nav class="sidebar__nav" aria-label="Navigation principale">
+      <nav
+        class="flex flex-col gap-1 self-stretch"
+        :class="{ 'md:items-center': reduit }"
+        aria-label="Navigation principale"
+      >
         <a
           v-for="item in navigation"
           :key="item.label"
           href="#"
-          class="sidebar__item"
-          :class="{ 'sidebar__item--actif': item.actif }"
+          :aria-label="item.label"
+          :class="[
+            classeItem,
+            {
+              'bg-white/16 font-semibold hover:bg-white/16': item.actif,
+              'md:h-11 md:w-auto': reduit,
+            },
+          ]"
           :aria-current="item.actif ? 'page' : undefined"
           @click.prevent="ouvertMobile = false"
         >
-          <img :src="item.icone" alt="" class="sidebar__icone" />
-          <span class="sidebar__label">{{ item.label }}</span>
-          <span v-if="item.compteur" class="sidebar__compteur">{{ item.compteur }}</span>
-          <span class="sidebar__infobulle" aria-hidden="true">{{ item.label }}</span>
+          <img :src="item.icone" alt="" class="shrink-0" />
+          <span class="flex-1 truncate" :class="{ 'md:hidden': reduit }">{{ item.label }}</span>
+          <span
+            v-if="item.compteur"
+            class="rounded-full bg-accent-300 px-2 py-0.5 text-caption text-black"
+            :class="{ 'md:hidden': reduit }"
+          >
+            {{ item.compteur }}
+          </span>
+          <span
+            :class="[
+              classeInfobulle,
+              { 'md:group-hover:block md:group-focus-visible:block': reduit },
+            ]"
+            aria-hidden="true"
+          >
+            {{ item.label }}
+          </span>
         </a>
       </nav>
 
-      <div class="sidebar__bas">
+      <div class="mt-auto flex flex-col gap-2 self-stretch" :class="{ 'md:items-center': reduit }">
         <button
           type="button"
-          class="sidebar__item sidebar__bascule"
+          :class="[classeItem, 'max-md:hidden', { 'md:h-11 md:w-auto': reduit }]"
+          :aria-label="reduit ? 'Ouvrir le menu' : 'Réduire le menu'"
           :aria-expanded="!reduit"
           aria-controls="agl-menu"
           @click="basculerMenu"
         >
-          <img :src="reduit ? ouvrirMenu : reduireMenu" alt="" class="sidebar__icone" />
-          <span class="sidebar__label">{{ reduit ? 'Ouvrir le menu' : 'Réduire le menu' }}</span>
-          <span class="sidebar__infobulle" aria-hidden="true">
-            {{ reduit ? 'Ouvrir le menu' : 'Réduire le menu' }}
+          <img :src="reduit ? ouvrirMenu : reduireMenu" alt="" class="shrink-0" />
+          <span class="flex-1 truncate" :class="{ 'md:hidden': reduit }">Réduire le menu</span>
+          <span
+            :class="[
+              classeInfobulle,
+              { 'md:group-hover:block md:group-focus-visible:block': reduit },
+            ]"
+            aria-hidden="true"
+          >
+            Ouvrir le menu
           </span>
         </button>
-        <a href="#" class="sidebar__item" @click.prevent>
-          <img :src="parametres" alt="" class="sidebar__icone" />
-          <span class="sidebar__label">Paramètres</span>
-          <span class="sidebar__infobulle" aria-hidden="true">Paramètres</span>
-        </a>
-        <div class="sidebar__utilisateur">
-          <span class="sidebar__avatar" title="Claire Dubois, propriétaire">CD</span>
-          <span class="sidebar__identite">
-            <strong>Claire Dubois</strong>
-            <small>Propriétaire</small>
+        <a
+          href="#"
+          aria-label="Paramètres"
+          :class="[classeItem, { 'md:h-11 md:w-auto': reduit }]"
+          @click.prevent
+        >
+          <img :src="parametres" alt="" class="shrink-0" />
+          <span class="flex-1 truncate" :class="{ 'md:hidden': reduit }">Paramètres</span>
+          <span
+            :class="[
+              classeInfobulle,
+              { 'md:group-hover:block md:group-focus-visible:block': reduit },
+            ]"
+            aria-hidden="true"
+          >
+            Paramètres
           </span>
-          <button type="button" class="sidebar__deconnexion" aria-label="Se déconnecter">
+        </a>
+        <div
+          class="flex items-center gap-3 self-stretch rounded-md bg-white/10 p-3"
+          :class="{ 'md:justify-center md:p-0.5': reduit }"
+        >
+          <span
+            class="flex size-10 shrink-0 items-center justify-center rounded-full border border-neutrals-50 bg-white font-semibold text-primary-300"
+            title="Claire Dubois, propriétaire"
+          >
+            CD
+          </span>
+          <span
+            class="flex min-w-0 flex-1 flex-col whitespace-nowrap"
+            :class="{ 'md:hidden': reduit }"
+          >
+            <strong class="font-semibold">Claire Dubois</strong>
+            <small class="text-caption">Propriétaire</small>
+          </span>
+          <button
+            type="button"
+            class="flex cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-white"
+            :class="{ 'md:hidden': reduit }"
+            aria-label="Se déconnecter"
+          >
             <img :src="deconnexion" alt="" />
           </button>
         </div>
       </div>
     </aside>
 
-    <div class="agl__voile" aria-hidden="true" @click="ouvertMobile = false"></div>
+    <div
+      class="fixed inset-0 z-30 bg-neutrals-400/40 transition-opacity duration-200 md:hidden"
+      :class="ouvertMobile ? 'opacity-100' : 'pointer-events-none opacity-0'"
+      aria-hidden="true"
+      @click="ouvertMobile = false"
+    ></div>
 
-    <div class="main">
-      <header class="barre-mobile">
+    <div
+      class="flex min-w-0 flex-1 flex-col gap-4 px-4 pb-6 md:gap-8 md:px-6 md:py-8 lg:gap-10 lg:p-12"
+    >
+      <header
+        class="sticky top-0 z-20 -mx-2 flex max-md:order-first h-14 items-center gap-1 bg-white md:hidden"
+      >
         <button
           type="button"
-          class="barre-mobile__bouton"
+          class="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md bg-white"
           aria-label="Ouvrir le menu"
           aria-controls="agl-menu"
           :aria-expanded="ouvertMobile"
@@ -180,18 +247,25 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
         >
           <img :src="menu" alt="" />
         </button>
-        <p class="barre-mobile__titre">{{ titre }}</p>
-        <button type="button" class="barre-mobile__bouton" aria-label="Notifications">
+        <p class="min-w-0 flex-1 truncate text-center text-h3 font-semibold">{{ titre }}</p>
+        <button
+          type="button"
+          class="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md bg-white"
+          aria-label="Notifications"
+        >
           <img :src="notifications" alt="" />
         </button>
       </header>
 
-      <div class="topbar">
-        <ol class="fil" aria-label="Fil d'Ariane">
-          <li v-for="(niveau, index) in filAriane" :key="index" class="fil__niveau">
-            <img v-if="index > 0" :src="separateur" alt="" class="fil__separateur" />
+      <div class="flex flex-wrap items-center justify-between gap-3 max-md:justify-start">
+        <ol
+          class="flex flex-wrap items-center text-neutrals-200 max-md:hidden"
+          aria-label="Fil d'Ariane"
+        >
+          <li v-for="(niveau, index) in filAriane" :key="index" class="flex items-center">
+            <img v-if="index > 0" :src="separateur" alt="" />
             <span
-              :class="{ fil__courant: index === filAriane.length - 1 }"
+              :class="{ 'font-medium text-neutrals-400': index === filAriane.length - 1 }"
               :aria-current="index === filAriane.length - 1 ? 'page' : undefined"
             >
               {{ niveau }}
@@ -199,506 +273,29 @@ watch(ouvertMobile, (ouvert) => document.body.classList.toggle('agl-menu-ouvert'
           </li>
         </ol>
 
-        <div class="topbar__droite">
-          <span class="badge">
+        <div class="ml-auto flex items-center gap-3 max-md:ml-0">
+          <span
+            class="flex items-center gap-1 rounded-full bg-neutrals-50/60 px-3 py-1 text-caption font-medium tracking-[0.96px] text-neutrals-300 uppercase md:whitespace-nowrap"
+          >
             <img :src="horsConnexion" alt="" />
             Hors connexion · enregistré sur cet appareil
           </span>
-          <button type="button" class="topbar__notifications" aria-label="Notifications">
+          <button
+            type="button"
+            class="flex size-10 cursor-pointer items-center justify-center rounded-md border border-neutrals-50 bg-white max-md:hidden"
+            aria-label="Notifications"
+          >
             <img :src="notifications" alt="" />
           </button>
         </div>
       </div>
 
-      <header class="entete">
-        <h1 class="entete__titre">{{ titre }}</h1>
-        <p v-if="sousTitre" class="entete__sous-titre">{{ sousTitre }}</p>
+      <header class="flex flex-col gap-1 max-md:-order-1">
+        <h1 class="text-h1 font-semibold max-md:hidden">{{ titre }}</h1>
+        <p v-if="sousTitre" class="text-neutrals-200">{{ sousTitre }}</p>
       </header>
 
       <slot />
     </div>
   </div>
 </template>
-
-<style scoped>
-.agl {
-  display: flex;
-  min-height: 100vh;
-}
-
-.sidebar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  flex-shrink: 0;
-  width: 300px;
-  height: 100vh;
-  box-sizing: border-box;
-  padding: 32px 24px;
-  background: var(--sidebar-background);
-  color: var(--sidebar-text-color);
-  transition:
-    width 0.2s ease,
-    padding 0.2s ease;
-}
-
-.sidebar__marque {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.sidebar__logo {
-  position: relative;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-}
-
-.sidebar__logo img {
-  position: absolute;
-  top: 2.4px;
-  left: 4.59px;
-}
-
-.sidebar__nom,
-.sidebar__identite {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  white-space: nowrap;
-}
-
-.sidebar__nom {
-  flex: 1;
-}
-
-.sidebar__nom strong {
-  font-size: var(--size-h3);
-  font-weight: 600;
-  line-height: var(--line-height-h3);
-}
-
-.sidebar__nom small,
-.sidebar__identite small {
-  font-size: var(--size-caption);
-  line-height: var(--line-height-caption);
-}
-
-.sidebar__fermer {
-  display: none;
-}
-
-.sidebar__nav,
-.sidebar__bas {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.sidebar__bas {
-  gap: 8px;
-  margin-top: auto;
-}
-
-.sidebar__item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-sizing: border-box;
-  width: 100%;
-  padding: 12px;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: none;
-  color: var(--sidebar-text-color);
-  font: 500 var(--size-body) / var(--line-height-body) var(--font-family);
-  text-align: left;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.sidebar__item:hover {
-  background: rgb(255 255 255 / 8%);
-}
-
-.sidebar__item:focus-visible,
-.sidebar__deconnexion:focus-visible,
-.sidebar__fermer:focus-visible {
-  outline: 2px solid var(--color-neutrals-white);
-  outline-offset: -2px;
-}
-
-.sidebar__item--actif,
-.sidebar__item--actif:hover {
-  background: rgb(255 255 255 / 16%);
-  font-weight: 600;
-}
-
-.sidebar__icone {
-  flex-shrink: 0;
-}
-
-.sidebar__label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sidebar__compteur {
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: var(--color-accent-300);
-  color: #000;
-  font-size: var(--size-caption);
-  font-weight: 400;
-  line-height: var(--line-height-caption);
-}
-
-.sidebar__infobulle {
-  display: none;
-  position: absolute;
-  top: 50%;
-  left: calc(100% + 12px);
-  z-index: 3;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--color-neutrals-400);
-  color: var(--color-neutrals-white);
-  font-size: var(--size-caption);
-  font-weight: 400;
-  line-height: var(--line-height-caption);
-  white-space: nowrap;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-
-.sidebar__infobulle::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 100%;
-  border: 5px solid transparent;
-  border-right-color: var(--color-neutrals-400);
-  transform: translateY(-50%);
-}
-
-.sidebar__utilisateur {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: var(--radius-md);
-  background: rgb(255 255 255 / 10%);
-}
-
-.sidebar__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  box-sizing: border-box;
-  border: 1px solid var(--color-neutrals-50);
-  border-radius: var(--radius-full);
-  background: var(--color-neutrals-white);
-  color: var(--color-primary-300);
-  font-weight: 600;
-}
-
-.sidebar__identite {
-  flex: 1;
-}
-
-.sidebar__identite strong {
-  font-weight: 600;
-  line-height: var(--line-height-body);
-}
-
-.sidebar__deconnexion,
-.sidebar__fermer {
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  cursor: pointer;
-}
-
-.sidebar__deconnexion {
-  display: flex;
-}
-
-@media (width >= 768px) {
-  .agl--reduit .sidebar {
-    align-items: center;
-    width: 92px;
-  }
-
-  .agl--reduit .sidebar__nom,
-  .agl--reduit .sidebar__label,
-  .agl--reduit .sidebar__compteur,
-  .agl--reduit .sidebar__identite,
-  .agl--reduit .sidebar__deconnexion {
-    display: none;
-  }
-
-  .agl--reduit .sidebar__item {
-    width: auto;
-    height: 44px;
-  }
-
-  .agl--reduit .sidebar__item:hover .sidebar__infobulle,
-  .agl--reduit .sidebar__item:focus-visible .sidebar__infobulle {
-    display: block;
-  }
-
-  .agl--reduit .sidebar__nav,
-  .agl--reduit .sidebar__bas {
-    align-items: center;
-  }
-
-  .agl--reduit .sidebar__bas {
-    align-self: stretch;
-  }
-
-  .agl--reduit .sidebar__utilisateur {
-    justify-content: center;
-    padding: 2px;
-  }
-}
-
-.agl__voile {
-  display: none;
-}
-
-.main {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 40px;
-  min-width: 0;
-  padding: 48px;
-}
-
-.barre-mobile {
-  display: none;
-}
-
-.topbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.fil {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--color-neutrals-200);
-  line-height: var(--line-height-body);
-}
-
-.fil__niveau {
-  display: flex;
-  align-items: center;
-}
-
-.fil__courant {
-  color: var(--color-neutrals-400);
-  font-weight: 500;
-}
-
-.topbar__droite {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
-}
-
-.badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  background: rgb(209 213 219 / 60%);
-  color: var(--color-neutrals-300);
-  font-size: var(--size-overline);
-  font-weight: 500;
-  line-height: var(--line-height-overline);
-  letter-spacing: 0.96px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.topbar__notifications {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--color-neutrals-50);
-  border-radius: var(--radius-md);
-  background: var(--color-neutrals-white);
-  cursor: pointer;
-}
-
-.entete {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.entete__titre {
-  margin: 0;
-  font-size: var(--size-h1);
-  font-weight: 600;
-  line-height: var(--line-height-h1);
-}
-
-.entete__sous-titre {
-  margin: 0;
-  color: var(--color-neutrals-200);
-  line-height: var(--line-height-body);
-}
-
-@media (width < 1024px) {
-  .main {
-    gap: 32px;
-    padding: 32px 24px;
-  }
-}
-
-@media (width < 768px) {
-  .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 4;
-    width: min(300px, 85vw);
-    height: auto;
-    overflow-y: auto;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-  }
-
-  .agl--mobile-ouvert .sidebar {
-    transform: none;
-  }
-
-  .sidebar__fermer {
-    display: flex;
-  }
-
-  .sidebar__bascule {
-    display: none;
-  }
-
-  .agl__voile {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 3;
-    background: rgb(51 0 15 / 40%);
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 0.25s ease,
-      visibility 0.25s;
-  }
-
-  .agl--mobile-ouvert .agl__voile {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .main {
-    gap: 16px;
-    padding: 0 16px 24px;
-  }
-
-  .barre-mobile {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    height: 56px;
-    margin: 0 -8px;
-    background: var(--color-neutrals-white);
-  }
-
-  .barre-mobile__bouton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    border: 0;
-    border-radius: var(--radius-md);
-    background: var(--color-neutrals-white);
-    cursor: pointer;
-  }
-
-  .barre-mobile__titre {
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    overflow: hidden;
-    font-size: var(--size-h3);
-    font-weight: 600;
-    line-height: var(--line-height-h3);
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .fil,
-  .topbar__notifications,
-  .entete__titre {
-    display: none;
-  }
-
-  .topbar {
-    justify-content: flex-start;
-  }
-
-  .topbar__droite {
-    margin-left: 0;
-  }
-
-  .badge {
-    white-space: normal;
-  }
-
-  .entete {
-    order: -1;
-    margin-top: 0;
-  }
-
-  .barre-mobile {
-    order: -2;
-  }
-}
-</style>
-
-<style>
-body.agl-menu-ouvert {
-  overflow: hidden;
-}
-</style>
