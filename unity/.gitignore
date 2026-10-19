@@ -134,3 +134,6 @@ Desktop.ini
 
 # Fichiers générés par Burst lors d'un build Web
 /[Dd]ata/
+
+# Fichiers laissés par le package Performance Testing quand un build échoue
+/[Aa]ssets/Resources/PerformanceTestRun*.json*
