@@ -8,11 +8,5 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Main.unity
     guid: 23505dc66e87b4e7c9d1ea5f33b58767
-  - enabled: 1
-    path: Assets/Scenes/Lot-A_TestCubes.unity
-    guid: 36ab96a9ff6f34a1d88363adc4a7986b
-  - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

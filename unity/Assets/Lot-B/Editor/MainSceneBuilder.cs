@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 namespace AGL3D.LotB.Editor
 {
     /// <summary>
-    /// Crée la scène principale <c>Main.unity</c> et la place en tête des scènes du build.
+    /// Crée la scène principale <c>Main.unity</c>, seule scène du build WebGL.
     /// Ne remplace jamais une scène existante : sur une scène déjà créée, ajoute seulement
     /// les prefabs qui manquent (Appartement, CameraRig, Interaction) et retire les objets
     /// provisoires (cubes de test, caméra et sol).
@@ -111,13 +111,13 @@ namespace AGL3D.LotB.Editor
             Object.DestroyImmediate(root);
         }
 
-        /// <summary>Met Main.unity en première position : c'est la scène chargée par le build WebGL.</summary>
+        /// <summary>
+        /// Main.unity est la seule scène du build WebGL : les scènes de travail des lots
+        /// n'y entrent pas, pour ne pas alourdir le build.
+        /// </summary>
         private static void AddToBuildSettings()
         {
-            var others = EditorBuildSettings.scenes.Where(s => s.path != ScenePath);
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) }
-                .Concat(others)
-                .ToArray();
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         }
     }
 }
