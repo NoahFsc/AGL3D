@@ -2,32 +2,38 @@
 /** Page de démo : la 3D Unity dans une page AGL, avec l'écran d'accueil par-dessus. */
 import { computed, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
+import ElementCard, { type SaisieConstat } from '@/components/ElementCard.vue'
 import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
 import UnityViewer from '@/components/UnityViewer.vue'
 import { edlRepository } from '@/repositories'
-import type { ModeAffichage, UnityToVueMessage } from '@/types/bridge'
+import type { ModeAffichage, PointPayload, UnityToVueMessage } from '@/types/bridge'
+import type { Constat, Dossier, Edl, ElementKey, TypeEdl } from '@/types/edl'
 
 const DOSSIER_ID = 'appart-demo'
 
 const viewer = ref<InstanceType<typeof UnityViewer> | null>(null)
 const received = ref<UnityToVueMessage[]>([])
 
-const titre = ref('')
-const adresse = ref('')
+const dossier = ref<Dossier | null>(null)
+const edls = ref<Edl[]>([])
+const titre = computed(() => dossier.value?.logement.libelle ?? '')
+const adresse = computed(() => dossier.value?.logement.adresse ?? '')
 const mode = ref<ModeAffichage>('accueil')
-const entreeFaite = ref(false)
 const unityPret = ref(false)
+
+const entreeFaite = computed(() =>
+  edls.value.some((edl) => edl.type === 'entree' && edl.constats.length > 0),
+)
 
 /** Charge le logement et vérifie si l'entrée est déjà faite. */
 onMounted(async () => {
   try {
-    const [dossier, edls] = await Promise.all([
+    const [d, e] = await Promise.all([
       edlRepository.getDossier(DOSSIER_ID),
       edlRepository.listEdls(DOSSIER_ID),
     ])
-    titre.value = dossier.logement.libelle
-    adresse.value = dossier.logement.adresse
-    entreeFaite.value = edls.some((edl) => edl.type === 'entree' && edl.constats.length > 0)
+    dossier.value = d
+    edls.value = e
   } catch (e) {
     console.error('[AGL3D] Dossier illisible', e)
   }
@@ -49,18 +55,105 @@ function envoyerMode() {
 
 /** Retient le mode choisi ; il part vers Unity tout de suite ou à `ready`. */
 function choisir(nouveauMode: ModeChoisi) {
+  selection.value = null
   mode.value = nouveauMode
   if (unityPret.value) envoyerMode()
 }
 
-/** Journalise les messages Unity et envoie le mode à `ready`. */
+/* ------------------------------ Fiche (B4) ------------------------------ */
+
+/** Élément dont la fiche est ouverte, avec l'abscisse du clic pour placer la fiche. */
+const selection = ref<{ key: ElementKey; x: number } | null>(null)
+
+/** La fiche s'ouvre seulement pendant une entrée ou une sortie. */
+const typeEdl = computed<TypeEdl | null>(() =>
+  mode.value === 'entree' || mode.value === 'sortie' ? mode.value : null,
+)
+
+const edlCourant = computed(() => edls.value.find((edl) => edl.type === typeEdl.value) ?? null)
+
+const elementSelectionne = computed(() => {
+  const key = selection.value?.key
+  return key ? (dossier.value?.elements.find((e) => e.key === key) ?? null) : null
+})
+
+const pieceSelectionnee = computed(() => {
+  const pieceKey = elementSelectionne.value?.pieceKey
+  return dossier.value?.pieces.find((p) => p.key === pieceKey)?.label ?? ''
+})
+
+const constatSelectionne = computed(
+  () => edlCourant.value?.constats.find((c) => c.elementKey === selection.value?.key) ?? null,
+)
+
+/** Ouvre la fiche de l'élément cliqué, ou retire la sélection hors entrée et sortie. */
+function ouvrirFiche(key: ElementKey, x: number) {
+  const connu = dossier.value?.elements.some((e) => e.key === key)
+  if (!typeEdl.value || !connu) {
+    if (!connu) console.warn(`[AGL3D] Élément inconnu du dossier : ${key}`)
+    selection.value = null
+    viewer.value?.send('select', { key: null })
+    return
+  }
+  selection.value = { key, x }
+}
+
+/** Ferme la fiche (croix, Échap) et retire la surbrillance dans la 3D. */
+function fermerFiche() {
+  selection.value = null
+  viewer.value?.send('select', { key: null })
+}
+
+/**
+ * Garde le constat de l'état des lieux en cours et met à jour les repères.
+ * Pour l'instant en mémoire : l'enregistrement avec `saveConstat` arrive avec B5.
+ */
+function validerFiche(saisie: SaisieConstat) {
+  const key = selection.value?.key
+  const type = typeEdl.value
+  if (!key || !type) return
+
+  let edl = edls.value.find((e) => e.type === type)
+  if (!edl) {
+    edl = { type, date: new Date().toISOString().slice(0, 10), constats: [] }
+    edls.value.push(edl)
+  }
+  const ancien = edl.constats.find((c) => c.elementKey === key)
+  const constat: Constat = { ...ancien, elementKey: key, ...saisie, photo: ancien?.photo ?? null }
+  edl.constats = [...edl.constats.filter((c) => c.elementKey !== key), constat]
+
+  envoyerPoints()
+  fermerFiche()
+}
+
+/** Envoie à Unity les repères des éléments notés dans l'état des lieux en cours. */
+function envoyerPoints() {
+  const elements = dossier.value?.elements ?? []
+  const points: PointPayload[] = (edlCourant.value?.constats ?? []).map((c) => ({
+    key: c.elementKey,
+    label: elements.find((e) => e.key === c.elementKey)?.label ?? c.elementKey,
+    etat: c.etat,
+    degrade: false,
+  }))
+  viewer.value?.send('setPoints', { points })
+}
+
+/** Journalise les messages Unity, envoie le mode à `ready` et ouvre ou ferme la fiche. */
 function onMessage(message: UnityToVueMessage) {
   console.info('[AGL3D] Unity -> Vue', message)
   received.value.unshift(message)
 
-  if (message.type === 'ready') {
-    unityPret.value = true
-    envoyerMode()
+  switch (message.type) {
+    case 'ready':
+      unityPret.value = true
+      envoyerMode()
+      break
+    case 'pointSelected':
+      ouvrirFiche(message.payload.key, message.payload.x)
+      break
+    case 'deselected':
+      selection.value = null
+      break
   }
 }
 </script>
@@ -68,9 +161,18 @@ function onMessage(message: UnityToVueMessage) {
 <template>
   <AglShell :fil-ariane="filAriane" :titre="titre" :sous-titre="adresse">
     <section class="overflow-hidden rounded-lg border border-neutrals-50">
-      <div class="relative max-md:[&_.viewer]:aspect-[4/5]!">
+      <div class="relative md:[&_.viewer]:min-h-[600px] max-md:[&_.viewer]:aspect-[4/5]!">
         <UnityViewer ref="viewer" @message="onMessage" />
         <HomeScreen :mode="mode" :entree-faite="entreeFaite" @choisir="choisir" />
+        <ElementCard
+          v-if="elementSelectionne"
+          :element="elementSelectionne"
+          :piece="pieceSelectionnee"
+          :constat="constatSelectionne"
+          :x="selection?.x ?? 0"
+          @valider="validerFiche"
+          @fermer="fermerFiche"
+        />
       </div>
     </section>
 
