@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** Page de démo : la 3D Unity dans une page AGL, avec l'écran d'accueil par-dessus. */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
 import ElementCard, { type SaisieConstat } from '@/components/ElementCard.vue'
 import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
@@ -8,7 +8,7 @@ import RoomButtons from '@/components/RoomButtons.vue'
 import UnityViewer from '@/components/UnityViewer.vue'
 import { edlRepository } from '@/repositories'
 import type { CibleCamera, ModeAffichage, PointPayload, UnityToVueMessage } from '@/types/bridge'
-import type { Constat, Dossier, Edl, ElementKey, TypeEdl } from '@/types/edl'
+import type { Constat, Dossier, Edl, ElementKey, Etat, TypeEdl } from '@/types/edl'
 
 const DOSSIER_ID = 'appart-demo'
 
@@ -16,6 +16,8 @@ const viewer = ref<InstanceType<typeof UnityViewer> | null>(null)
 const received = ref<UnityToVueMessage[]>([])
 
 const dossier = ref<Dossier | null>(null)
+/** Erreur de lecture du dossier, affichée au-dessus de la 3D. */
+const erreurDossier = ref<string | null>(null)
 const edls = ref<Edl[]>([])
 const titre = computed(() => dossier.value?.logement.libelle ?? '')
 const adresse = computed(() => dossier.value?.logement.adresse ?? '')
@@ -40,6 +42,7 @@ onMounted(async () => {
     edls.value = e
   } catch (e) {
     console.error('[AGL3D] Dossier illisible', e)
+    erreurDossier.value = e instanceof Error ? e.message : String(e)
   }
 })
 
@@ -116,27 +119,89 @@ function fermerFiche() {
   viewer.value?.send('select', { key: null })
 }
 
+const LIBELLES_ETAT: Record<Etat, string> = { bon: 'Bon', usage: 'Usage', mauvais: 'Mauvais' }
+
 /**
- * Garde le constat de l'état des lieux en cours et met à jour les repères.
- * Pour l'instant en mémoire : l'enregistrement avec `saveConstat` arrive avec B5.
+ * Enregistre le constat dans l'état des lieux en cours, met à jour les repères et
+ * confirme l'enregistrement. En cas d'échec, la fiche reste ouverte.
  */
-function validerFiche(saisie: SaisieConstat) {
+async function validerFiche(saisie: SaisieConstat) {
   const key = selection.value?.key
   const type = typeEdl.value
-  if (!key || !type) return
+  const element = elementSelectionne.value
+  if (!key || !type || !element) return
 
-  let edl = edls.value.find((e) => e.type === type)
-  if (!edl) {
-    edl = { type, date: new Date().toISOString().slice(0, 10), constats: [] }
-    edls.value.push(edl)
-  }
-  const ancien = edl.constats.find((c) => c.elementKey === key)
+  // On garde la photo et le relevé d'un constat existant : la fiche ne les modifie pas.
+  const ancien = constatSelectionne.value
   const constat: Constat = { ...ancien, elementKey: key, ...saisie, photo: ancien?.photo ?? null }
-  edl.constats = [...edl.constats.filter((c) => c.elementKey !== key), constat]
+  try {
+    const edl = await edlRepository.saveConstat(DOSSIER_ID, type, constat)
+    edls.value = [...edls.value.filter((e) => e.type !== type), edl]
+  } catch (e) {
+    console.error('[AGL3D] Constat non enregistré', e)
+    afficherMessage("Le constat n'a pas pu être enregistré. Réessayez.", true)
+    return
+  }
 
   envoyerPoints()
   fermerFiche()
+  afficherMessage(`${element.label} : ${LIBELLES_ETAT[saisie.etat]}, enregistré.`)
 }
+
+/* -------------------------- Jeu de démo (B5) --------------------------- */
+
+const nombreConstats = computed(() => edls.value.reduce((n, edl) => n + edl.constats.length, 0))
+
+/** Remplace les constats enregistrés par ceux du jeu de démo, après confirmation. */
+async function chargerDemo() {
+  if (
+    nombreConstats.value > 0 &&
+    !window.confirm('Remplacer les constats enregistrés sur cet appareil par le jeu de démo ?')
+  ) {
+    return
+  }
+  try {
+    edls.value = await edlRepository.loadDemo(DOSSIER_ID)
+  } catch (e) {
+    console.error('[AGL3D] Jeu de démo illisible', e)
+    afficherMessage("Le jeu de démo n'a pas pu être chargé.", true)
+    return
+  }
+  apresChangementEdls()
+  afficherMessage('Jeu de démo chargé : entrée et sortie.')
+}
+
+/** Efface tous les constats enregistrés, après confirmation, et revient à l'accueil. */
+async function toutEffacer() {
+  if (!window.confirm('Effacer tous les constats enregistrés sur cet appareil ?')) return
+  await edlRepository.reset(DOSSIER_ID)
+  edls.value = []
+  mode.value = 'accueil'
+  apresChangementEdls()
+  afficherMessage('Constats effacés.')
+}
+
+/** Ferme la fiche et renvoie le mode et les repères à Unity. */
+function apresChangementEdls() {
+  if (selection.value) fermerFiche()
+  if (!unityPret.value) return
+  envoyerMode()
+  if (typeEdl.value) envoyerPoints()
+}
+
+/* ------------------------------ Message ------------------------------- */
+
+/** Message court en bas de l'écran, retour visuel de chaque action. */
+const message = ref<{ texte: string; erreur: boolean } | null>(null)
+let minuterieMessage: ReturnType<typeof setTimeout> | undefined
+
+function afficherMessage(texte: string, erreur = false) {
+  message.value = { texte, erreur }
+  clearTimeout(minuterieMessage)
+  minuterieMessage = setTimeout(() => (message.value = null), 4000)
+}
+
+onBeforeUnmount(() => clearTimeout(minuterieMessage))
 
 /** Envoie à Unity les repères des éléments notés dans l'état des lieux en cours. */
 function envoyerPoints() {
@@ -183,6 +248,36 @@ function onMessage(message: UnityToVueMessage) {
 
 <template>
   <AglShell :fil-ariane="filAriane" :titre="titre" :sous-titre="adresse">
+    <div
+      v-if="erreurDossier"
+      class="flex items-start gap-3 rounded-md bg-mauvais-100 px-4 py-3 text-mauvais-500"
+      role="alert"
+    >
+      <!-- Lucide « triangle-alert » -->
+      <svg
+        class="mt-0.5 shrink-0"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path
+          d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"
+        />
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+      </svg>
+      <div class="min-w-0">
+        <p class="font-semibold">Les données du logement sont illisibles.</p>
+        <p class="text-caption whitespace-pre-line">{{ erreurDossier }}</p>
+      </div>
+    </div>
+
     <section class="overflow-hidden rounded-lg border border-neutrals-50">
       <div class="relative md:[&_.viewer]:min-h-[660px] max-md:[&_.viewer]:aspect-[4/5]!">
         <UnityViewer ref="viewer" @message="onMessage" />
@@ -205,6 +300,29 @@ function onMessage(message: UnityToVueMessage) {
       </div>
     </section>
 
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <button
+        type="button"
+        class="inline-flex h-9 cursor-pointer items-center justify-center rounded-sm border-2 border-primary-300 bg-white px-4 font-semibold text-primary-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-300 disabled:cursor-not-allowed disabled:border-neutrals-50 disabled:text-neutrals-100"
+        :disabled="!dossier"
+        @click="chargerDemo"
+      >
+        Charger le jeu de démo
+      </button>
+      <button
+        type="button"
+        class="cursor-pointer font-semibold text-primary-300 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-300 disabled:cursor-not-allowed disabled:text-neutrals-100 disabled:no-underline"
+        :disabled="nombreConstats === 0"
+        @click="toutEffacer"
+      >
+        Tout effacer
+      </button>
+      <p class="text-neutrals-200">
+        {{ nombreConstats === 0 ? 'Aucun constat' : `${nombreConstats} constat${nombreConstats > 1 ? 's' : ''}` }}
+        enregistré{{ nombreConstats > 1 ? 's' : '' }} sur cet appareil
+      </p>
+    </div>
+
     <details class="text-caption text-neutrals-200">
       <summary>Messages reçus de Unity ({{ received.length }})</summary>
       <p v-if="received.length === 0">Aucun message pour l'instant.</p>
@@ -214,5 +332,36 @@ function onMessage(message: UnityToVueMessage) {
         </li>
       </ul>
     </details>
+
+    <div
+      class="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+      aria-live="polite"
+    >
+      <p
+        v-if="message"
+        class="flex items-center gap-2 rounded-md bg-neutrals-400 px-4 py-3 text-white shadow-raised"
+      >
+        <!-- Lucide « circle-alert » ou « check » -->
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <template v-if="message.erreur">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
+          </template>
+          <path v-else d="M20 6 9 17l-5-5" />
+        </svg>
+        {{ message.texte }}
+      </p>
+    </div>
   </AglShell>
 </template>
