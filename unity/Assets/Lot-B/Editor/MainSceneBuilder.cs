@@ -23,7 +23,7 @@ namespace AGL3D.LotB.Editor
         private const string AppartementPrefabPath = "Assets/Lot-A/Appartement/Appartement.prefab";
         private const string CameraRigPrefabPath = "Assets/Lot-A/CameraRig/CameraRig.prefab";
 
-        /// <summary>Prefab du lot B qui porte le survol (B2), puis le clic (B3).</summary>
+        /// <summary>Prefab du lot B qui porte le survol (B2) et le clic (B3).</summary>
         private const string InteractionPrefabPath = "Assets/Lot-B/Interaction.prefab";
 
         // Objets provisoires des premières versions de Main, remplacés par les prefabs du lot A.
@@ -40,7 +40,7 @@ namespace AGL3D.LotB.Editor
             bool changed = RemoveProvisional(scene);
             changed |= EnsurePrefab(scene, CameraRigPrefabPath);
             changed |= EnsurePrefab(scene, AppartementPrefabPath);
-            GetOrCreateInteractionPrefab();
+            UpdateInteractionPrefab();
             changed |= EnsurePrefab(scene, InteractionPrefabPath);
             if (changed) EditorSceneManager.SaveScene(scene);
 
@@ -102,13 +102,31 @@ namespace AGL3D.LotB.Editor
             return PrefabUtility.GetCorrespondingObjectFromSource(go) == prefab;
         }
 
-        private static void GetOrCreateInteractionPrefab()
+        /// <summary>Crée le prefab Interaction, ou lui ajoute les composants qui manquent.</summary>
+        private static void UpdateInteractionPrefab()
         {
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(InteractionPrefabPath) != null) return;
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(InteractionPrefabPath) == null)
+            {
+                var created = new GameObject("Interaction", typeof(HoverHighlighter), typeof(ElementSelector));
+                PrefabUtility.SaveAsPrefabAsset(created, InteractionPrefabPath);
+                Object.DestroyImmediate(created);
+                return;
+            }
 
-            var root = new GameObject("Interaction", typeof(HoverHighlighter));
-            PrefabUtility.SaveAsPrefabAsset(root, InteractionPrefabPath);
-            Object.DestroyImmediate(root);
+            var root = PrefabUtility.LoadPrefabContents(InteractionPrefabPath);
+            try
+            {
+                bool changed = false;
+                if (!root.TryGetComponent<HoverHighlighter>(out _)) { root.AddComponent<HoverHighlighter>(); changed = true; }
+                if (!root.TryGetComponent<ElementSelector>(out _)) { root.AddComponent<ElementSelector>(); changed = true; }
+                if (!changed) return;
+                PrefabUtility.SaveAsPrefabAsset(root, InteractionPrefabPath);
+                Debug.Log($"[MainSceneBuilder] {InteractionPrefabPath} mis à jour.");
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         /// <summary>

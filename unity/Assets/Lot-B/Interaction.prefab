@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2572718810947238972}
   - component: {fileID: 3659679791263174420}
+  - component: {fileID: 1355368548466690108}
   m_Layer: 0
   m_Name: Interaction
   m_TagString: Untagged
@@ -46,8 +47,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AGL3D.LotB.HoverHighlighter
   hoverColor: {r: 0.25, g: 0.62, b: 1, a: 1}
   strength: 0.6
+  selectedStrength: 0.85
   fadeDuration: 0.12
   maxDistance: 200
   layers:
     serializedVersion: 2
     m_Bits: 4294967291
+--- !u!114 &1355368548466690108
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3829980118663253746}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3680dd3649ca7456390d6986ccbcd40b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AGL3D.LotB.ElementSelector
+  dragThreshold: 6
