@@ -32,13 +32,15 @@
       "key": "salon.compteur-eau",
       "pieceKey": "salon",
       "label": "Compteur d'eau",
-      "categorie": "compteur"
+      "categorie": "compteur",
+      "unite": "m³"
     },
     {
       "key": "salon.compteur-electricite",
       "pieceKey": "salon",
       "label": "Compteur d'électricité",
-      "categorie": "compteur"
+      "categorie": "compteur",
+      "unite": "kWh"
     },
     {
       "key": "salon.mur-ouest",

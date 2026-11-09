@@ -5,23 +5,38 @@
  * La fiche se cale sur le bord opposé au point cliqué pour ne pas cacher l'élément,
  * entre les boutons de mode en haut et les boutons de pièce en bas.
  * Émet `valider` avec l'état et le commentaire, `fermer` sans rien enregistrer.
+ * Le slot par défaut, entre l'état et le commentaire, accueille des champs propres à un
+ * type d'élément : l'index d'un compteur dans `MeterCard`.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import type { Element, Etat } from '@/types/edl'
+import type { Element, Etat, Releve } from '@/types/edl'
 
 export interface SaisieConstat {
   etat: Etat
   commentaire: string
+  /** Index relevé, uniquement pour un compteur. */
+  releve?: Releve
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   element: Element
   piece: string
   /** Constat déjà enregistré pour cet élément, pour préremplir la fiche. */
   constat?: SaisieConstat | null
   /** Abscisse du point cliqué, de 0 à 1 dans le canvas. */
   x: number
-}>()
+  /** Faux tant que les champs du slot ne sont pas remplis ; `raison` l'explique. */
+  pret?: boolean
+  raison?: string
+  /** Exemple de commentaire affiché dans le champ vide. */
+  exemple?: string
+}>(), {
+  // Sans valeur par défaut, Vue changerait un booléen absent en `false`.
+  pret: true,
+  constat: null,
+  raison: undefined,
+  exemple: undefined,
+})
 
 const emit = defineEmits<{
   valider: [saisie: SaisieConstat]
@@ -72,8 +87,15 @@ watch(
 /** Point cliqué à droite : la fiche passe à gauche. */
 const aGauche = computed(() => props.x > 0.55)
 
+/** Pourquoi Valider est grisé, ou chaîne vide si on peut valider. */
+const blocage = computed(() => {
+  if (!etat.value) return "Choisissez d'abord un état"
+  if (props.pret === false) return props.raison ?? 'Complétez la fiche'
+  return ''
+})
+
 function valider() {
-  if (!etat.value) return
+  if (!etat.value || blocage.value) return
   emit('valider', { etat: etat.value, commentaire: commentaire.value.trim() })
 }
 
@@ -129,10 +151,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', fermerAvecEchap))
       </button>
     </header>
 
-    <form
-      class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-5"
-      @submit.prevent="valider"
-    >
+    <form class="flex min-h-0 flex-1 flex-col" @submit.prevent="valider">
+      <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-3">
       <fieldset class="flex flex-col gap-2">
         <legend class="mb-2 font-semibold">État</legend>
         <label
@@ -150,6 +170,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', fermerAvecEchap))
         </label>
       </fieldset>
 
+      <slot />
+
       <label class="flex flex-col gap-2">
         <span class="font-semibold">Commentaire</span>
         <textarea
@@ -157,23 +179,26 @@ onBeforeUnmount(() => document.removeEventListener('keydown', fermerAvecEchap))
           rows="2"
           maxlength="500"
           class="resize-none rounded-sm border border-neutrals-50 px-3 py-2 placeholder:text-neutrals-100 focus-visible:border-neutrals-300 focus-visible:outline-none"
-          placeholder="Ex. : rayure de 10 cm sous la fenêtre"
+          :placeholder="exemple ?? 'Ex. : rayure de 10 cm sous la fenêtre'"
         />
       </label>
+      </div>
 
-      <button
-        type="submit"
-        class="mt-auto inline-flex h-11 shrink-0 items-center justify-center rounded-sm border-2 px-4 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-300"
-        :class="
-          etat
-            ? 'cursor-pointer border-primary-300 bg-primary-300 text-white'
-            : 'cursor-not-allowed border-neutrals-50 bg-white text-neutrals-100'
-        "
-        :disabled="!etat"
-        :title="etat ? '' : 'Choisissez d\'abord un état'"
-      >
-        Valider
-      </button>
+      <div class="shrink-0 px-5 pt-2 pb-5">
+        <button
+          type="submit"
+          class="inline-flex h-11 w-full items-center justify-center rounded-sm border-2 px-4 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-300"
+          :class="
+            blocage
+              ? 'cursor-not-allowed border-neutrals-50 bg-white text-neutrals-100'
+              : 'cursor-pointer border-primary-300 bg-primary-300 text-white'
+          "
+          :disabled="!!blocage"
+          :title="blocage"
+        >
+          Valider
+        </button>
+      </div>
     </form>
   </aside>
 </template>

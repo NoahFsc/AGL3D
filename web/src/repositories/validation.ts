@@ -123,6 +123,8 @@ export function validerDossier(data: unknown, source: string): Dossier {
       }
       v.texte(e.label, `${chemin}.label`)
       v.parmi(e.categorie, CATEGORIES, `${chemin}.categorie`)
+      if (e.categorie === 'compteur') v.texte(e.unite, `${chemin}.unite`)
+      else if (e.unite !== undefined) v.ajouter(`${chemin}.unite`, 'réservé aux compteurs')
     })
   }
 

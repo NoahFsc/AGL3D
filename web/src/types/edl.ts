@@ -40,6 +40,8 @@ export interface Element {
   pieceKey: PieceKey
   label: string
   categorie: CategorieElement
+  /** Unité de l'index, uniquement pour les compteurs, ex. `m³`, `kWh`. */
+  unite?: string
 }
 
 /** Index d'un compteur. */
