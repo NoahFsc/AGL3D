@@ -42,6 +42,8 @@ onMounted(async () => {
     ])
     dossier.value = d
     edls.value = e
+    // Unity a pu envoyer `ready` avant la fin du chargement : on complète ses repères.
+    if (unityPret.value) envoyerPoints()
   } catch (e) {
     console.error('[AGL3D] Dossier illisible', e)
     erreurDossier.value = e instanceof Error ? e.message : String(e)
@@ -216,7 +218,7 @@ function apresChangementEdls() {
   if (selection.value) fermerFiche()
   if (!unityPret.value) return
   envoyerMode()
-  if (typeEdl.value) envoyerPoints()
+  envoyerPoints()
 }
 
 /* ------------------------------ Message ------------------------------- */
@@ -233,13 +235,28 @@ function afficherMessage(texte: string, erreur = false) {
 
 onBeforeUnmount(() => clearTimeout(minuterieMessage))
 
-/** Envoie à Unity les repères des éléments notés dans l'état des lieux en cours. */
+/**
+ * État des lieux dont Unity affiche les repères : celui en cours pendant une entrée ou une
+ * sortie ; sur l'accueil, le plus récent qui a des constats (la sortie, sinon l'entrée).
+ */
+const edlDesReperes = computed(() => {
+  if (typeEdl.value) return edlCourant.value
+  if (mode.value !== 'accueil') return null
+  const avecConstats = (type: TypeEdl) =>
+    edls.value.find((edl) => edl.type === type && edl.constats.length > 0)
+  return avecConstats('sortie') ?? avecConstats('entree') ?? null
+})
+
+/**
+ * Envoie à Unity un repère par élément du dossier, dans l'ordre de la liste : coloré selon
+ * son constat dans `edlDesReperes`, gris (état vide) s'il n'est pas encore noté.
+ */
 function envoyerPoints() {
-  const elements = dossier.value?.elements ?? []
-  const points: PointPayload[] = (edlCourant.value?.constats ?? []).map((c) => ({
-    key: c.elementKey,
-    label: elements.find((e) => e.key === c.elementKey)?.label ?? c.elementKey,
-    etat: c.etat,
+  const constats = edlDesReperes.value?.constats ?? []
+  const points: PointPayload[] = (dossier.value?.elements ?? []).map((e) => ({
+    key: e.key,
+    label: e.label,
+    etat: constats.find((c) => c.elementKey === e.key)?.etat ?? '',
     degrade: false,
   }))
   viewer.value?.send('setPoints', { points })
@@ -262,6 +279,7 @@ function onMessage(message: UnityToVueMessage) {
     case 'ready':
       unityPret.value = true
       envoyerMode()
+      envoyerPoints()
       break
     case 'pointSelected':
       ouvrirFiche(message.payload.key, message.payload.x)

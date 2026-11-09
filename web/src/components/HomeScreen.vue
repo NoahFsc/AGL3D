@@ -20,14 +20,15 @@ const boutons: { mode: ModeChoisi; label: string; apresEntree: boolean }[] = [
   { mode: 'comparer', label: 'Comparer', apresEntree: true },
 ]
 
-/** Bouton Fill pour Entrée sur l'accueil et pour le mode en cours, Outline sinon. */
+/**
+ * Bouton Fill pour le mode en cours seulement, Outline sinon : sur l'accueil, aucun bouton
+ * n'est rempli, pour ne pas laisser croire qu'on est déjà en Entrée.
+ */
 function classeBouton(bouton: (typeof boutons)[number]): string {
   if (bouton.apresEntree && !props.entreeFaite) {
     return 'cursor-not-allowed border-neutrals-50 bg-white text-neutrals-100'
   }
-  const enAvant =
-    props.mode === bouton.mode || (props.mode === 'accueil' && bouton.mode === 'entree')
-  return enAvant
+  return props.mode === bouton.mode
     ? 'cursor-pointer border-primary-300 bg-primary-300 text-white'
     : 'cursor-pointer border-primary-300 bg-white text-primary-300'
 }
