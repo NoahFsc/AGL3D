@@ -35,8 +35,10 @@ mergeInto(LibraryManager.library, {
       var enter = function () { state.inside = true; };
       var leave = function () { state.inside = false; };
       canvas.addEventListener('pointerenter', enter);
-      // Le pointeur peut déjà être sur le canvas au chargement : le premier mouvement le dit.
+      // Le pointeur peut déjà être sur le canvas au chargement : le premier mouvement ou
+      // le premier appui le dit. L'appui arrive avant l'Update qui lit le clic.
       canvas.addEventListener('pointermove', enter);
+      canvas.addEventListener('pointerdown', enter);
       canvas.addEventListener('pointerleave', leave);
       window.addEventListener('blur', leave);
       canvas.agl3dPointer = state;
