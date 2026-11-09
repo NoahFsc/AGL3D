@@ -22,7 +22,11 @@ export interface UseUnityOptions {
   compressedExt?: string
   /** Appelé pour chaque message Unity → Vue. */
   onMessage?: (message: UnityToVueMessage) => void
-  /** Délai d'attente de `ready` après le démarrage du build, en millisecondes. */
+  /**
+   * Délai d'attente de `ready` après le démarrage du build, en millisecondes. Il ne
+   * compte que le temps où la page s'affiche : dans un onglet en arrière-plan, Unity
+   * est à l'arrêt et le délai aussi.
+   */
   readyTimeout?: number
 }
 
@@ -53,8 +57,8 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
 
   /** Messages JSON en attente de `ready`, dans l'ordre d'envoi. */
   let pending: string[] = []
-  /** Minuterie qui signale un build démarré mais muet (pas de `ready`). */
-  let attenteReady: ReturnType<typeof setTimeout> | undefined
+  /** Boucle d'images qui signale un build démarré mais muet (pas de `ready`). */
+  let attenteReady: number | undefined
 
   function send<T extends VueToUnityType>(type: T, payload: VueToUnityPayloads[T]): void {
     const json = JSON.stringify({ type, payload })
@@ -81,11 +85,42 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
     const message = (event as CustomEvent<UnityToVueMessage>).detail
     if (message.type === 'ready') {
       isReady.value = true
-      clearTimeout(attenteReady)
+      arreterAttente()
       // Les messages en attente partent avant ceux que onMessage enverra en réponse.
       flush()
     }
     onMessage?.(message)
+  }
+
+  /**
+   * Signale une maquette muette si `ready` n'arrive pas après `readyTimeout` ms
+   * d'affichage. Le temps est compté image par image : un onglet en arrière-plan ne
+   * dessine pas d'images, Unity n'y tourne pas, et le délai ne doit pas avancer.
+   */
+  function attendreReady(): void {
+    let ecoule = 0
+    let precedent = performance.now()
+    const image = (maintenant: number) => {
+      if (isReady.value) return
+      // Une longue pause entre deux images (onglet repris) ne compte presque pas.
+      ecoule += Math.min(maintenant - precedent, 250)
+      precedent = maintenant
+      if (ecoule < readyTimeout) {
+        attenteReady = requestAnimationFrame(image)
+        return
+      }
+      attenteReady = undefined
+      error.value = new ErreurChargement(
+        'muet',
+        `Unity n'a pas envoyé ready après ${readyTimeout / 1000} s d'affichage.`,
+      )
+    }
+    attenteReady = requestAnimationFrame(image)
+  }
+
+  function arreterAttente(): void {
+    if (attenteReady !== undefined) cancelAnimationFrame(attenteReady)
+    attenteReady = undefined
   }
 
   async function loadLoaderScript(): Promise<void> {
@@ -133,15 +168,7 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
       )
       isLoaded.value = true
       flush()
-      if (!isReady.value) {
-        attenteReady = setTimeout(() => {
-          if (isReady.value) return
-          error.value = new ErreurChargement(
-            'muet',
-            `Unity n'a pas envoyé ready ${readyTimeout / 1000} s après son démarrage.`,
-          )
-        }, readyTimeout)
-      }
+      if (!isReady.value) attendreReady()
     } catch (e) {
       error.value = classerErreur(e)
       console.error('[useUnity] Chargement impossible', e)
@@ -149,7 +176,7 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
   })
 
   onBeforeUnmount(async () => {
-    clearTimeout(attenteReady)
+    arreterAttente()
     canvas.value?.removeEventListener(UNITY_EVENT, handleEvent)
     const current = instance.value
     instance.value = null

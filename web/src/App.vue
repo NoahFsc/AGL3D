@@ -3,6 +3,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
 import ElementCard, { type SaisieConstat } from '@/components/ElementCard.vue'
+import ElementChecklist from '@/components/ElementChecklist.vue'
 import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
 import MeterCard from '@/components/MeterCard.vue'
 import RoomButtons from '@/components/RoomButtons.vue'
@@ -120,6 +121,21 @@ function ouvrirFiche(key: ElementKey, x: number) {
     return
   }
   selection.value = { key, x }
+}
+
+/** Section de la 3D, ramenée à l'écran quand la liste est en dessous. */
+const sectionMaquette = ref<HTMLElement | null>(null)
+
+/**
+ * Ouvre la fiche d'un élément choisi dans la liste : la surbrillance et la caméra
+ * suivent dans la 3D. La fiche se place à droite, comme pour un clic à gauche.
+ */
+function ouvrirDepuisListe(key: ElementKey) {
+  if (!typeEdl.value) return
+  selection.value = { key, x: 0 }
+  viewer.value?.send('select', { key })
+  viewer.value?.send('focusElement', { key })
+  sectionMaquette.value?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
 }
 
 /** Ferme la fiche (croix, Échap) et retire la surbrillance dans la 3D. */
@@ -290,7 +306,8 @@ function onMessage(message: UnityToVueMessage) {
       </div>
     </div>
 
-    <section class="overflow-hidden rounded-lg border border-neutrals-50">
+    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+    <section ref="sectionMaquette" class="overflow-hidden rounded-lg border border-neutrals-50">
       <div class="relative md:[&_.viewer]:min-h-[660px] max-md:[&_.viewer]:aspect-[4/5]!">
         <UnityViewer ref="viewer" @message="onMessage" />
         <!-- Pas de boutons tant que la 3D n'a pas envoyé ready : l'écran de chargement
@@ -330,6 +347,18 @@ function onMessage(message: UnityToVueMessage) {
         />
       </div>
     </section>
+
+    <ElementChecklist
+      v-if="unityPret && dossier && typeEdl"
+      class="xl:sticky xl:top-4"
+      :type="typeEdl"
+      :pieces="dossier.pieces"
+      :elements="dossier.elements"
+      :constats="edlCourant?.constats ?? []"
+      :selection="selection?.key ?? null"
+      @ouvrir="ouvrirDepuisListe"
+    />
+    </div>
 
     <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
       <button
