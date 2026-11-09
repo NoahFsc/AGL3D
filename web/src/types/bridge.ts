@@ -15,8 +15,11 @@ export type CibleCamera = PieceKey | 'overview'
 export interface PointPayload {
   key: ElementKey
   label: string
-  /** Couleur du repère : bon = vert, usage = orange, mauvais = rouge. */
-  etat: Etat
+  /**
+   * Couleur du repère : bon = vert, usage = orange, mauvais = rouge, chaîne vide = gris
+   * (élément pas encore noté). Les compteurs restent bleus quel que soit leur état.
+   */
+  etat: Etat | ''
   /** En mode Comparer, l'élément passe progressivement au rouge. */
   degrade: boolean
 }

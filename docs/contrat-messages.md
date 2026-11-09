@@ -54,7 +54,8 @@ Une clé de pièce vaut `salon`, `chambre` ou `cuisine`. La valeur `overview` d�
 vue d'ensemble de l'appartement.
 
 L'état d'un élément vaut `bon`, `usage` ou `mauvais`. Unity colore le repère en vert,
-orange ou rouge. Le survol d'un élément utilise une autre couleur, pour ne pas le
+orange ou rouge. Dans `setPoints`, un état vide signale un élément pas encore noté : son
+repère est gris. Les repères des compteurs restent bleus quel que soit leur état. Le survol d'un élément utilise une autre couleur, pour ne pas le
 confondre avec un état.
 
 Le mode vaut `accueil`, `entree`, `sortie` ou `comparer`. En mode `accueil`, la caméra
@@ -84,7 +85,7 @@ manquent d'un côté ou de l'autre.
 | Type           | Contenu                                                   | Ce que fait Unity |
 | -------------- | --------------------------------------------------------- | ----------------- |
 | `init`         | `{ dossierId: string, mode: "accueil" \| "entree" \| "sortie" \| "comparer" }` | Retire la sélection et applique le mode. En `accueil`, montre tout l'appartement et le fait tourner lentement. |
-| `setPoints`    | `{ points: [{ key, label, etat, degrade }] }`             | Remplace tous les repères. Chaque point reçoit un repère coloré selon son `etat`. En mode Comparer, les éléments avec `degrade: true` passent progressivement au rouge. Unity ignore une clé inconnue et affiche un avertissement. |
+| `setPoints`    | `{ points: [{ key, label, etat, degrade }] }`             | Remplace tous les repères. Vue envoie tous les éléments du dossier, dans l'ordre de la liste, y compris sur l'accueil. Chaque point reçoit un repère coloré selon son `etat`, gris si `etat` est vide. En mode Comparer, les éléments avec `degrade: true` passent progressivement au rouge. Unity ignore une clé inconnue et affiche un avertissement. |
 | `focusRoom`    | `{ room: string }`, une clé de pièce ou `"overview"`      | Déplace la caméra vers la pièce en environ une seconde, puis envoie `roomChanged`. |
 | `focusElement` | `{ key: string }`                                         | Rapproche la caméra de l'élément. Sert à la liste des défauts en mode Comparer. |
 | `select`       | `{ key: string \| null }`                                 | Met l'élément en surbrillance. `null` ou une chaîne vide retire la sélection, par exemple quand l'utilisateur ferme la fiche avec Échap. Unity n'envoie pas `pointSelected` en réponse, pour éviter une boucle. |
