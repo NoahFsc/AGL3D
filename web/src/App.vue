@@ -4,8 +4,9 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
 import ElementCard, { type SaisieConstat } from '@/components/ElementCard.vue'
 import ElementChecklist from '@/components/ElementChecklist.vue'
-import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
+import type { ModeChoisi } from '@/components/HomeScreen.vue'
 import MeterCard from '@/components/MeterCard.vue'
+import ModeSwitch from '@/components/ModeSwitch.vue'
 import RoomButtons from '@/components/RoomButtons.vue'
 import UnityViewer from '@/components/UnityViewer.vue'
 import { edlRepository } from '@/repositories'
@@ -64,13 +65,18 @@ function envoyerMode() {
   viewer.value?.send('init', { dossierId: DOSSIER_ID, mode: mode.value })
 }
 
-/** Retient le mode choisi ; il part vers Unity tout de suite ou à `ready`, avec ses repères. */
-function choisir(nouveauMode: ModeChoisi) {
+/**
+ * Passe dans le mode choisi (C4) : `init` puis `setPoints` partent vers Unity, tout de suite
+ * ou à `ready`. Pour une entrée, la caméra va ensuite au salon, ou dans la pièce de
+ * l'élément cliqué sur l'accueil (`piece`).
+ */
+function choisir(nouveauMode: ModeChoisi, piece: CibleCamera = 'salon') {
   selection.value = null
   mode.value = nouveauMode
   if (!unityPret.value) return
   envoyerMode()
   envoyerPoints()
+  if (nouveauMode === 'entree') allerDans(piece)
 }
 
 /* ------------------------------ Fiche (B4) ------------------------------ */
@@ -112,10 +118,11 @@ const releveEntree = computed(
  * le clic lance l'entrée. En mode Comparer, la sélection est retirée.
  */
 function ouvrirFiche(key: ElementKey, x: number) {
-  const connu = dossier.value?.elements.some((e) => e.key === key)
-  if (connu && mode.value === 'accueil') {
+  const element = dossier.value?.elements.find((e) => e.key === key)
+  const connu = element !== undefined
+  if (element && mode.value === 'accueil') {
     // `init` retire la sélection dans Unity : on la redonne juste après.
-    choisir('entree')
+    choisir('entree', element.pieceKey)
     viewer.value?.send('select', { key })
   }
   if (!typeEdl.value || !connu) {
@@ -332,10 +339,11 @@ function onMessage(message: UnityToVueMessage) {
         <UnityViewer ref="viewer" @message="onMessage" />
         <!-- Pas de boutons tant que la 3D n'a pas envoyé ready : l'écran de chargement
              ou d'erreur de UnityViewer occupe la place. -->
-        <HomeScreen
+        <ModeSwitch
           v-if="unityPret"
           :mode="mode"
           :entree-faite="entreeFaite"
+          :fiche-ouverte="selection !== null"
           @choisir="choisir"
         />
         <RoomButtons
