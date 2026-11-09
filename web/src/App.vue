@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
 import ElementCard, { type SaisieConstat } from '@/components/ElementCard.vue'
 import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
+import MeterCard from '@/components/MeterCard.vue'
 import RoomButtons from '@/components/RoomButtons.vue'
 import UnityViewer from '@/components/UnityViewer.vue'
 import { edlRepository } from '@/repositories'
@@ -93,6 +94,14 @@ const constatSelectionne = computed(
   () => edlCourant.value?.constats.find((c) => c.elementKey === selection.value?.key) ?? null,
 )
 
+/** État des lieux d'entrée, pour rappeler l'index d'un compteur à la sortie. */
+const edlEntree = computed(() => edls.value.find((edl) => edl.type === 'entree') ?? null)
+
+const releveEntree = computed(
+  () =>
+    edlEntree.value?.constats.find((c) => c.elementKey === selection.value?.key)?.releve ?? null,
+)
+
 /**
  * Ouvre la fiche de l'élément cliqué. Sur l'accueil, où Entrée est déjà mis en avant,
  * le clic lance l'entrée. En mode Comparer, la sélection est retirée.
@@ -145,7 +154,10 @@ async function validerFiche(saisie: SaisieConstat) {
 
   envoyerPoints()
   fermerFiche()
-  afficherMessage(`${element.label} : ${LIBELLES_ETAT[saisie.etat]}, enregistré.`)
+  const detail = saisie.releve
+    ? `index ${saisie.releve.valeur.toLocaleString('fr-FR')}\u00a0${saisie.releve.unite}`
+    : LIBELLES_ETAT[saisie.etat]
+  afficherMessage(`${element.label}\u00a0: ${detail}, enregistré.`)
 }
 
 /* -------------------------- Jeu de démo (B5) --------------------------- */
@@ -288,8 +300,20 @@ function onMessage(message: UnityToVueMessage) {
           :courante="pieceCourante"
           @focus="allerDans"
         />
+        <MeterCard
+          v-if="elementSelectionne?.categorie === 'compteur' && typeEdl"
+          :element="elementSelectionne"
+          :piece="pieceSelectionnee"
+          :constat="constatSelectionne"
+          :x="selection?.x ?? 0"
+          :type="typeEdl"
+          :releve-entree="releveEntree"
+          :date-entree="edlEntree?.date"
+          @valider="validerFiche"
+          @fermer="fermerFiche"
+        />
         <ElementCard
-          v-if="elementSelectionne"
+          v-else-if="elementSelectionne"
           :element="elementSelectionne"
           :piece="pieceSelectionnee"
           :constat="constatSelectionne"
