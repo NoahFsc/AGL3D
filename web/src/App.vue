@@ -62,11 +62,13 @@ function envoyerMode() {
   viewer.value?.send('init', { dossierId: DOSSIER_ID, mode: mode.value })
 }
 
-/** Retient le mode choisi ; il part vers Unity tout de suite ou à `ready`. */
+/** Retient le mode choisi ; il part vers Unity tout de suite ou à `ready`, avec ses repères. */
 function choisir(nouveauMode: ModeChoisi) {
   selection.value = null
   mode.value = nouveauMode
-  if (unityPret.value) envoyerMode()
+  if (!unityPret.value) return
+  envoyerMode()
+  envoyerPoints()
 }
 
 /* ------------------------------ Fiche (B4) ------------------------------ */
