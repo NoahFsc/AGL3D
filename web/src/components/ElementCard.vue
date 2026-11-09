@@ -2,7 +2,8 @@
 /**
  * Fiche d'un élément cliqué dans la 3D (tâche B4) : nom, pièce, choix de l'état,
  * commentaire et bouton Valider. Échap ou la croix ferment la fiche.
- * La fiche se cale sur le bord opposé au point cliqué pour ne pas cacher l'élément.
+ * La fiche se cale sur le bord opposé au point cliqué pour ne pas cacher l'élément,
+ * entre les boutons de mode en haut et les boutons de pièce en bas.
  * Émet `valider` avec l'état et le commentaire, `fermer` sans rien enregistrer.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -86,7 +87,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', fermerAvecEchap))
 
 <template>
   <aside
-    class="absolute top-16 bottom-4 flex w-80 flex-col overflow-hidden rounded-md border border-neutrals-50 bg-white shadow-raised max-md:inset-x-3 max-md:top-auto max-md:bottom-3 max-md:max-h-[calc(100%-1.5rem)] max-md:w-auto"
+    class="absolute top-16 bottom-16 flex w-80 flex-col overflow-hidden rounded-md border border-neutrals-50 bg-white shadow-raised max-md:inset-x-3 max-md:top-auto max-md:bottom-3 max-md:max-h-[calc(100%-1.5rem)] max-md:w-auto"
     :class="aGauche ? 'left-4' : 'right-4'"
     role="dialog"
     :aria-labelledby="`fiche-${element.key}`"

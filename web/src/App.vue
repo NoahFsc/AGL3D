@@ -4,9 +4,10 @@ import { computed, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
 import ElementCard, { type SaisieConstat } from '@/components/ElementCard.vue'
 import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
+import RoomButtons from '@/components/RoomButtons.vue'
 import UnityViewer from '@/components/UnityViewer.vue'
 import { edlRepository } from '@/repositories'
-import type { ModeAffichage, PointPayload, UnityToVueMessage } from '@/types/bridge'
+import type { CibleCamera, ModeAffichage, PointPayload, UnityToVueMessage } from '@/types/bridge'
 import type { Constat, Dossier, Edl, ElementKey, TypeEdl } from '@/types/edl'
 
 const DOSSIER_ID = 'appart-demo'
@@ -20,6 +21,9 @@ const titre = computed(() => dossier.value?.logement.libelle ?? '')
 const adresse = computed(() => dossier.value?.logement.adresse ?? '')
 const mode = ref<ModeAffichage>('accueil')
 const unityPret = ref(false)
+const pieces = computed(() => dossier.value?.pieces ?? [])
+/** Pièce où se trouve la caméra, mise à jour par `roomChanged`. */
+const pieceCourante = ref<CibleCamera | null>(null)
 
 const entreeFaite = computed(() =>
   edls.value.some((edl) => edl.type === 'entree' && edl.constats.length > 0),
@@ -146,7 +150,15 @@ function envoyerPoints() {
   viewer.value?.send('setPoints', { points })
 }
 
-/** Journalise les messages Unity, envoie le mode à `ready` et ouvre ou ferme la fiche. */
+/** Déplace la caméra vers une pièce ; Unity répond par `roomChanged` à l'arrivée. */
+function allerDans(room: CibleCamera) {
+  viewer.value?.send('focusRoom', { room })
+}
+
+/**
+ * Journalise les messages Unity, envoie le mode à `ready`, ouvre ou ferme la fiche
+ * et suit la pièce courante.
+ */
 function onMessage(message: UnityToVueMessage) {
   console.info('[AGL3D] Unity -> Vue', message)
   received.value.unshift(message)
@@ -162,6 +174,9 @@ function onMessage(message: UnityToVueMessage) {
     case 'deselected':
       selection.value = null
       break
+    case 'roomChanged':
+      pieceCourante.value = message.payload.room
+      break
   }
 }
 </script>
@@ -169,9 +184,15 @@ function onMessage(message: UnityToVueMessage) {
 <template>
   <AglShell :fil-ariane="filAriane" :titre="titre" :sous-titre="adresse">
     <section class="overflow-hidden rounded-lg border border-neutrals-50">
-      <div class="relative md:[&_.viewer]:min-h-[600px] max-md:[&_.viewer]:aspect-[4/5]!">
+      <div class="relative md:[&_.viewer]:min-h-[660px] max-md:[&_.viewer]:aspect-[4/5]!">
         <UnityViewer ref="viewer" @message="onMessage" />
         <HomeScreen :mode="mode" :entree-faite="entreeFaite" @choisir="choisir" />
+        <RoomButtons
+          v-if="mode !== 'accueil'"
+          :pieces="pieces"
+          :courante="pieceCourante"
+          @focus="allerDans"
+        />
         <ElementCard
           v-if="elementSelectionne"
           :element="elementSelectionne"
