@@ -8,8 +8,9 @@ namespace AGL3D.LotA
     /// Caméra en orbite autour de l'appartement : clic droit maintenu et glisser pour
     /// tourner, molette pour zoomer. Le mouvement est lissé et l'inclinaison reste bornée
     /// pour que la caméra garde une vue plongeante sur la maquette.
-    /// La caméra ne traverse pas les murs marqués <see cref="CameraObstacle"/> et reste
-    /// au-dessus de leur sommet. <see cref="MoveTo"/> l'amène vers une autre vue.
+    /// La caméra reste au-dessus du sommet des murs marqués <see cref="CameraObstacle"/> :
+    /// l'inclinaison minimale augmente quand on se rapproche, sans décentrer la cible.
+    /// <see cref="MoveTo"/> l'amène vers une autre vue.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class CameraOrbit : MonoBehaviour
@@ -34,17 +35,15 @@ namespace AGL3D.LotA
         [SerializeField] private float zoomStep = 0.15f;
 
         [Header("Murs")]
-        [Tooltip("Hauteur minimale de la caméra : sommet des murs (1,20 m) plus une marge.")]
-        [SerializeField] private float minHeight = 1.6f;
-        [Tooltip("Rayon de la sphère testée contre les murs, pour garder la caméra à distance.")]
-        [SerializeField] private float collisionRadius = 0.25f;
+        [Tooltip("Marge entre la caméra et le sommet du plus haut mur (CameraObstacle).")]
+        [SerializeField] private float wallClearance = 0.4f;
 
         [Header("Lissage")]
         [Tooltip("Temps de réponse en secondes : plus petit = plus nerveux.")]
         [SerializeField] private float smoothTime = 0.1f;
 
         private float currentYaw, currentPitch, currentDistance;
-        private readonly RaycastHit[] hits = new RaycastHit[16];
+        private float? wallTop;
 
         // Déplacement en cours vers une autre vue (MoveTo).
         private bool moving;
@@ -72,8 +71,8 @@ namespace AGL3D.LotA
             fromDistance = currentDistance;
             toTarget = newTarget;
             toYaw = currentYaw + Mathf.DeltaAngle(currentYaw, newYaw); // chemin le plus court
-            toPitch = Mathf.Clamp(newPitch, minPitch, maxPitch);
             toDistance = Mathf.Clamp(newDistance, minDistance, maxDistance);
+            toPitch = Mathf.Clamp(newPitch, MinPitchFor(toDistance, newTarget), maxPitch);
             moveDuration = Mathf.Max(0.01f, duration);
             moveTime = 0f;
             onArrived = arrived;
@@ -99,7 +98,7 @@ namespace AGL3D.LotA
             {
                 var delta = mouse.delta.ReadValue();
                 yaw += delta.x * rotateSpeed;
-                pitch = Mathf.Clamp(pitch - delta.y * rotateSpeed, minPitch, maxPitch);
+                pitch = Mathf.Clamp(pitch - delta.y * rotateSpeed, MinPitchFor(distance, target), maxPitch);
             }
 
             float scroll = mouse.scroll.ReadValue().y;
@@ -109,6 +108,8 @@ namespace AGL3D.LotA
                 // (InputSettings.scrollDeltaBehavior) ; les trackpads envoient des valeurs plus petites.
                 float notches = Mathf.Clamp(scroll, -1f, 1f);
                 distance = Mathf.Clamp(distance * (1f - notches * zoomStep), minDistance, maxDistance);
+                // En se rapprochant, la caméra se redresse pour rester au-dessus des murs.
+                pitch = Mathf.Max(pitch, MinPitchFor(distance, target));
             }
         }
 
@@ -147,41 +148,39 @@ namespace AGL3D.LotA
 
         private void Apply()
         {
-            var rotation = Quaternion.Euler(currentPitch, currentYaw, 0f);
-            var back = rotation * Vector3.back;
-            // Pendant un MoveTo, la caméra reste au-dessus des murs : la détection ferait plonger
-            // la caméra quand la cible passe près d'une cloison. Les vues d'arrivée sont dégagées.
-            float d = moving ? currentDistance : DistanceBeforeWall(back, currentDistance);
-            var position = target + back * d;
-            position.y = Mathf.Max(position.y, minHeight);
-            transform.SetPositionAndRotation(position, rotation);
+            // Filet de sécurité pendant le lissage et les déplacements : on ne descend jamais
+            // sous l'inclinaison qui garde la caméra au-dessus des murs.
+            float effectivePitch = Mathf.Max(currentPitch, MinPitchFor(currentDistance, target));
+            var rotation = Quaternion.Euler(effectivePitch, currentYaw, 0f);
+            transform.SetPositionAndRotation(target + rotation * Vector3.back * currentDistance, rotation);
         }
 
-        /// <summary>Distance jusqu'au premier mur entre la cible et la caméra, sans dépasser <paramref name="distance"/>.</summary>
-        private float DistanceBeforeWall(Vector3 direction, float distance)
+        /// <summary>
+        /// Inclinaison minimale pour que la caméra, à <paramref name="dist"/> de
+        /// <paramref name="aim"/>, reste au-dessus des murs avec la marge voulue.
+        /// </summary>
+        private float MinPitchFor(float dist, Vector3 aim)
         {
-            // La sphère garde la caméra à distance des murs. Quand la cible est collée à un mur,
-            // la sphère part déjà dedans et ne le voit pas : le rayon fin le détecte quand même.
-            int count = Physics.SphereCastNonAlloc(target, collisionRadius, direction, hits, distance,
-                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
-            float nearest = Nearest(count, distance);
-            count = Physics.RaycastNonAlloc(target, direction, hits, distance,
-                Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
-            return Nearest(count, nearest);
+            float height = WallTop + wallClearance - aim.y;
+            if (height <= 0f || dist <= 0f) return minPitch;
+            float pitchForHeight = Mathf.Asin(Mathf.Clamp01(height / dist)) * Mathf.Rad2Deg;
+            return Mathf.Clamp(pitchForHeight, minPitch, maxPitch);
         }
 
-        private float Nearest(int count, float nearest)
+        /// <summary>Sommet du plus haut <see cref="CameraObstacle"/>, lu une fois.</summary>
+        private float WallTop
         {
-            for (int i = 0; i < count; i++)
+            get
             {
-                // distance == 0 : le test part déjà dans le collider, il ne donne pas de distance utile.
-                if (hits[i].distance > 0f && hits[i].distance < nearest
-                    && hits[i].collider.GetComponentInParent<CameraObstacle>() != null)
+                if (wallTop == null)
                 {
-                    nearest = hits[i].distance;
+                    float top = 0f;
+                    foreach (var obstacle in FindObjectsByType<CameraObstacle>(FindObjectsSortMode.None))
+                        top = Mathf.Max(top, obstacle.GetComponent<Collider>().bounds.max.y);
+                    wallTop = top;
                 }
+                return wallTop.Value;
             }
-            return nearest;
         }
 
         private static bool IsPointerInside(Mouse mouse)
@@ -195,7 +194,8 @@ namespace AGL3D.LotA
         {
             maxPitch = Mathf.Clamp(maxPitch, minPitch, 89f);
             maxDistance = Mathf.Max(maxDistance, minDistance);
-            collisionRadius = Mathf.Max(0f, collisionRadius);
+            wallClearance = Mathf.Max(0f, wallClearance);
+            wallTop = null;
             if (!Application.isPlaying)
             {
                 currentYaw = yaw;

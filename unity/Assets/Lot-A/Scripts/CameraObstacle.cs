@@ -3,9 +3,9 @@ using UnityEngine;
 namespace AGL3D.LotA
 {
     /// <summary>
-    /// Marque un mur ou une cloison que la caméra ne doit pas traverser.
-    /// <see cref="CameraOrbit"/> rapproche la caméra quand un de ces objets se trouve
-    /// entre elle et le point visé. Un Collider est requis.
+    /// Marque un mur ou une cloison. <see cref="CameraOrbit"/> garde la caméra au-dessus du
+    /// sommet du plus haut de ces objets, pour qu'elle ne traverse jamais un mur.
+    /// Un Collider est requis.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]

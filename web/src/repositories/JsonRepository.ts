@@ -1,5 +1,6 @@
 import type { Constat, Dossier, Edl, TypeEdl } from '@/types/edl'
 import type { EdlRepository } from './EdlRepository'
+import { validerDossier, validerEdls } from './validation'
 
 const STORAGE_PREFIX = 'agl3d:edls:'
 
@@ -7,6 +8,7 @@ const STORAGE_PREFIX = 'agl3d:edls:'
  * Implémentation sans serveur.
  * - Données de référence : fichier statique `<baseUrl>/<dossierId>/<dossierId>.json`.
  * - Constats saisis : `localStorage`, clé `agl3d:edls:<dossierId>`.
+ * Les deux sont vérifiés à la lecture (`validation.ts`).
  */
 export class JsonRepository implements EdlRepository {
   private readonly cache = new Map<string, Promise<Dossier>>()
@@ -72,16 +74,31 @@ export class JsonRepository implements EdlRepository {
     if (!response.ok) {
       throw new Error(`Dossier "${dossierId}" introuvable (${response.status} sur ${url})`)
     }
-    // TODO(lot B) : valider le schéma (schemaVersion, clés d'éléments) avant de faire confiance au JSON.
-    return (await response.json()) as Dossier
+    let data: unknown
+    try {
+      data = await response.json()
+    } catch (e) {
+      throw new Error(`Dossier "${dossierId}" : ${url} n'est pas du JSON valide`, { cause: e })
+    }
+    return validerDossier(data, url)
   }
 
   private read(dossierId: string): Edl[] {
+    const key = STORAGE_PREFIX + dossierId
+    let raw: string | null | undefined
     try {
-      const raw = this.storage?.getItem(STORAGE_PREFIX + dossierId)
-      if (raw) return JSON.parse(raw) as Edl[]
+      raw = this.storage?.getItem(key)
     } catch {
-      // Stockage indisponible ou contenu illisible : on se rabat sur la mémoire.
+      // Stockage indisponible : on se rabat sur la mémoire.
+    }
+    if (raw) {
+      try {
+        return validerEdls(JSON.parse(raw), `localStorage "${key}"`)
+      } catch (e) {
+        // Contenu abîmé ou d'une ancienne version : on l'ignore, le prochain
+        // enregistrement le remplacera.
+        console.warn('[JsonRepository] Constats du navigateur ignorés', e)
+      }
     }
     return structuredClone(this.memory.get(dossierId) ?? [])
   }

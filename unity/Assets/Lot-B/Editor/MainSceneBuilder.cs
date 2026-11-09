@@ -23,7 +23,7 @@ namespace AGL3D.LotB.Editor
         private const string AppartementPrefabPath = "Assets/Lot-A/Appartement/Appartement.prefab";
         private const string CameraRigPrefabPath = "Assets/Lot-A/CameraRig/CameraRig.prefab";
 
-        /// <summary>Prefab du lot B qui porte le survol (B2) et le clic (B3).</summary>
+        /// <summary>Prefab du lot B qui porte le survol (B2), le clic (B3) et le son de validation (B7).</summary>
         private const string InteractionPrefabPath = "Assets/Lot-B/Interaction.prefab";
 
         // Objets provisoires des premières versions de Main, remplacés par les prefabs du lot A.
@@ -107,7 +107,8 @@ namespace AGL3D.LotB.Editor
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(InteractionPrefabPath) == null)
             {
-                var created = new GameObject("Interaction", typeof(HoverHighlighter), typeof(ElementSelector));
+                var created = new GameObject("Interaction", typeof(HoverHighlighter), typeof(ElementSelector),
+                    typeof(ValidationSound));
                 PrefabUtility.SaveAsPrefabAsset(created, InteractionPrefabPath);
                 Object.DestroyImmediate(created);
                 return;
@@ -119,6 +120,7 @@ namespace AGL3D.LotB.Editor
                 bool changed = false;
                 if (!root.TryGetComponent<HoverHighlighter>(out _)) { root.AddComponent<HoverHighlighter>(); changed = true; }
                 if (!root.TryGetComponent<ElementSelector>(out _)) { root.AddComponent<ElementSelector>(); changed = true; }
+                if (!root.TryGetComponent<ValidationSound>(out _)) { root.AddComponent<ValidationSound>(); changed = true; }
                 if (!changed) return;
                 PrefabUtility.SaveAsPrefabAsset(root, InteractionPrefabPath);
                 Debug.Log($"[MainSceneBuilder] {InteractionPrefabPath} mis à jour.");
