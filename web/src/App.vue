@@ -3,9 +3,11 @@
 import { computed, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
 import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
+import RoomButtons from '@/components/RoomButtons.vue'
 import UnityViewer from '@/components/UnityViewer.vue'
 import { edlRepository } from '@/repositories'
-import type { ModeAffichage, UnityToVueMessage } from '@/types/bridge'
+import type { CibleCamera, ModeAffichage, UnityToVueMessage } from '@/types/bridge'
+import type { Piece } from '@/types/edl'
 
 const DOSSIER_ID = 'appart-demo'
 
@@ -17,6 +19,9 @@ const adresse = ref('')
 const mode = ref<ModeAffichage>('accueil')
 const entreeFaite = ref(false)
 const unityPret = ref(false)
+const pieces = ref<Piece[]>([])
+/** Pièce où se trouve la caméra, mise à jour par `roomChanged`. */
+const pieceCourante = ref<CibleCamera | null>(null)
 
 /** Charge le logement et vérifie si l'entrée est déjà faite. */
 onMounted(async () => {
@@ -27,6 +32,7 @@ onMounted(async () => {
     ])
     titre.value = dossier.logement.libelle
     adresse.value = dossier.logement.adresse
+    pieces.value = dossier.pieces
     entreeFaite.value = edls.some((edl) => edl.type === 'entree' && edl.constats.length > 0)
   } catch (e) {
     console.error('[AGL3D] Dossier illisible', e)
@@ -53,7 +59,12 @@ function choisir(nouveauMode: ModeChoisi) {
   if (unityPret.value) envoyerMode()
 }
 
-/** Journalise les messages Unity et envoie le mode à `ready`. */
+/** Déplace la caméra vers une pièce ; Unity répond par `roomChanged` à l'arrivée. */
+function allerDans(room: CibleCamera) {
+  viewer.value?.send('focusRoom', { room })
+}
+
+/** Journalise les messages Unity, envoie le mode à `ready` et suit la pièce courante. */
 function onMessage(message: UnityToVueMessage) {
   console.info('[AGL3D] Unity -> Vue', message)
   received.value.unshift(message)
@@ -61,6 +72,9 @@ function onMessage(message: UnityToVueMessage) {
   if (message.type === 'ready') {
     unityPret.value = true
     envoyerMode()
+  }
+  if (message.type === 'roomChanged') {
+    pieceCourante.value = message.payload.room
   }
 }
 </script>
@@ -71,6 +85,12 @@ function onMessage(message: UnityToVueMessage) {
       <div class="relative max-md:[&_.viewer]:aspect-[4/5]!">
         <UnityViewer ref="viewer" @message="onMessage" />
         <HomeScreen :mode="mode" :entree-faite="entreeFaite" @choisir="choisir" />
+        <RoomButtons
+          v-if="mode !== 'accueil'"
+          :pieces="pieces"
+          :courante="pieceCourante"
+          @focus="allerDans"
+        />
       </div>
     </section>
 
