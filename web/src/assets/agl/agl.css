@@ -13,6 +13,18 @@
   --color-neutrals-300: #374151;
   --color-neutrals-400: #33000f;
 
+  /* États d'un élément : vert, orange, rouge, comme les repères dans la 3D.
+     300 = pastille, 100 = fond de l'option choisie, 500 = texte sur ce fond (≥ 7:1). */
+  --color-bon-100: #dcfce7;
+  --color-bon-300: #16a34a;
+  --color-bon-500: #14532d;
+  --color-usage-100: #ffedd5;
+  --color-usage-300: #ea580c;
+  --color-usage-500: #7c2d12;
+  --color-mauvais-100: #fee2e2;
+  --color-mauvais-300: #dc2626;
+  --color-mauvais-500: #7f1d1d;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
