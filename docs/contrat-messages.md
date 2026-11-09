@@ -68,7 +68,8 @@ côté du point cliqué, Vue les multiplie par la largeur et la hauteur du canva
 
 1. Vue charge le build avec `createUnityInstance`.
 2. Unity démarre. Chaque `InspectableElement` s'enregistre.
-3. `WebBridge` envoie `ready` avec la liste des clés.
+3. Une image après le démarrage, quand tous les scripts Unity se sont abonnés aux
+   événements de `WebBridge`, `WebBridge` envoie `ready` avec la liste des clés.
 4. Vue envoie `init` avec le mode `accueil`. Quand l'utilisateur choisit un mode, Vue
    renvoie `init` avec ce mode, puis `setPoints` avec les éléments déjà notés.
 5. L'utilisateur interagit. Les deux côtés échangent des messages.
