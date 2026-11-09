@@ -2,6 +2,8 @@
 /** Page de démo : la 3D Unity dans une page AGL, avec l'écran d'accueil par-dessus. */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
+import ComparisonCard from '@/components/ComparisonCard.vue'
+import ComparisonList from '@/components/ComparisonList.vue'
 import ElementCard, { type SaisieConstat } from '@/components/ElementCard.vue'
 import ElementChecklist from '@/components/ElementChecklist.vue'
 import type { ModeChoisi } from '@/components/HomeScreen.vue'
@@ -10,6 +12,7 @@ import ModeSwitch from '@/components/ModeSwitch.vue'
 import RoomButtons from '@/components/RoomButtons.vue'
 import UnityViewer from '@/components/UnityViewer.vue'
 import { edlRepository } from '@/repositories'
+import { clesDegradees } from '@/utils/comparaison'
 import type { CibleCamera, ModeAffichage, PointPayload, UnityToVueMessage } from '@/types/bridge'
 import type { Constat, Dossier, Edl, ElementKey, Etat, TypeEdl } from '@/types/edl'
 
@@ -113,9 +116,12 @@ const releveEntree = computed(
     edlEntree.value?.constats.find((c) => c.elementKey === selection.value?.key)?.releve ?? null,
 )
 
+/** Une fiche s'ouvre pendant une entrée, une sortie, ou en mode Comparer (en lecture seule). */
+const ficheAutorisee = computed(() => typeEdl.value !== null || mode.value === 'comparer')
+
 /**
- * Ouvre la fiche de l'élément cliqué. Sur l'accueil, où Entrée est déjà mis en avant,
- * le clic lance l'entrée. En mode Comparer, la sélection est retirée.
+ * Ouvre la fiche de l'élément cliqué. Sur l'accueil, le clic lance l'entrée. En mode
+ * Comparer, la fiche montre l'élément à l'entrée et à la sortie.
  */
 function ouvrirFiche(key: ElementKey, x: number) {
   const element = dossier.value?.elements.find((e) => e.key === key)
@@ -125,7 +131,7 @@ function ouvrirFiche(key: ElementKey, x: number) {
     choisir('entree', element.pieceKey)
     viewer.value?.send('select', { key })
   }
-  if (!typeEdl.value || !connu) {
+  if (!ficheAutorisee.value || !connu) {
     if (!connu) console.warn(`[AGL3D] Élément inconnu du dossier : ${key}`)
     selection.value = null
     viewer.value?.send('select', { key: null })
@@ -142,7 +148,7 @@ const sectionMaquette = ref<HTMLElement | null>(null)
  * suivent dans la 3D. La fiche se place à droite, comme pour un clic à gauche.
  */
 function ouvrirDepuisListe(key: ElementKey) {
-  if (!typeEdl.value) return
+  if (!ficheAutorisee.value) return
   selection.value = { key, x: 0 }
   viewer.value?.send('select', { key })
   viewer.value?.send('focusElement', { key })
@@ -242,13 +248,20 @@ function afficherMessage(texte: string, erreur = false) {
 
 onBeforeUnmount(() => clearTimeout(minuterieMessage))
 
+/** État des lieux de sortie, s'il existe. */
+const edlSortie = computed(() => edls.value.find((edl) => edl.type === 'sortie') ?? null)
+
+/** Éléments dégradés entre l'entrée et la sortie (C5). */
+const degradees = computed(() => clesDegradees(edlEntree.value, edlSortie.value))
+
 /**
  * État des lieux dont Unity affiche les repères : celui en cours pendant une entrée ou une
- * sortie ; sur l'accueil, le plus récent qui a des constats (la sortie, sinon l'entrée).
+ * sortie ; la sortie en mode Comparer ; sur l'accueil, le plus récent qui a des constats
+ * (la sortie, sinon l'entrée).
  */
 const edlDesReperes = computed(() => {
   if (typeEdl.value) return edlCourant.value
-  if (mode.value !== 'accueil') return null
+  if (mode.value === 'comparer') return edlSortie.value
   const avecConstats = (type: TypeEdl) =>
     edls.value.find((edl) => edl.type === type && edl.constats.length > 0)
   return avecConstats('sortie') ?? avecConstats('entree') ?? null
@@ -256,7 +269,8 @@ const edlDesReperes = computed(() => {
 
 /**
  * Envoie à Unity un repère par élément du dossier, dans l'ordre de la liste : coloré selon
- * son constat dans `edlDesReperes`, gris (état vide) s'il n'est pas encore noté.
+ * son constat dans `edlDesReperes`, gris (état vide) s'il n'est pas encore noté. En mode
+ * Comparer, `degrade` marque les éléments dégradés, que Unity fait passer au rouge (C6).
  */
 function envoyerPoints() {
   const constats = edlDesReperes.value?.constats ?? []
@@ -264,7 +278,7 @@ function envoyerPoints() {
     key: e.key,
     label: e.label,
     etat: constats.find((c) => c.elementKey === e.key)?.etat ?? '',
-    degrade: false,
+    degrade: mode.value === 'comparer' && degradees.value.has(e.key),
   }))
   viewer.value?.send('setPoints', { points })
 }
@@ -352,8 +366,17 @@ function onMessage(message: UnityToVueMessage) {
           :courante="pieceCourante"
           @focus="allerDans"
         />
+        <ComparisonCard
+          v-if="elementSelectionne && mode === 'comparer'"
+          :element="elementSelectionne"
+          :piece="pieceSelectionnee"
+          :entree="edlEntree"
+          :sortie="edlSortie"
+          :x="selection?.x ?? 0"
+          @fermer="fermerFiche"
+        />
         <MeterCard
-          v-if="elementSelectionne?.categorie === 'compteur' && typeEdl"
+          v-else-if="elementSelectionne?.categorie === 'compteur' && typeEdl"
           :element="elementSelectionne"
           :piece="pieceSelectionnee"
           :constat="constatSelectionne"
@@ -383,6 +406,16 @@ function onMessage(message: UnityToVueMessage) {
       :pieces="dossier.pieces"
       :elements="dossier.elements"
       :constats="edlCourant?.constats ?? []"
+      :selection="selection?.key ?? null"
+      @ouvrir="ouvrirDepuisListe"
+    />
+    <ComparisonList
+      v-else-if="unityPret && dossier && mode === 'comparer'"
+      class="xl:sticky xl:top-4"
+      :pieces="dossier.pieces"
+      :elements="dossier.elements"
+      :entree="edlEntree"
+      :sortie="edlSortie"
       :selection="selection?.key ?? null"
       @ouvrir="ouvrirDepuisListe"
     />
