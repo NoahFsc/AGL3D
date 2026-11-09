@@ -1607,8 +1607,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AGL3D.LotC.PointMarkers
   modele: {fileID: 8198339860699713744, guid: daa62721ce97f46c8ade0e11b4652bc7, type: 3}
-  diametre: 0.16
-  ecart: 0.06
 --- !u!4 &1404564147
 Transform:
   m_ObjectHideFlags: 0
