@@ -86,9 +86,17 @@ const constatSelectionne = computed(
   () => edlCourant.value?.constats.find((c) => c.elementKey === selection.value?.key) ?? null,
 )
 
-/** Ouvre la fiche de l'élément cliqué, ou retire la sélection hors entrée et sortie. */
+/**
+ * Ouvre la fiche de l'élément cliqué. Sur l'accueil, où Entrée est déjà mis en avant,
+ * le clic lance l'entrée. En mode Comparer, la sélection est retirée.
+ */
 function ouvrirFiche(key: ElementKey, x: number) {
   const connu = dossier.value?.elements.some((e) => e.key === key)
+  if (connu && mode.value === 'accueil') {
+    // `init` retire la sélection dans Unity : on la redonne juste après.
+    choisir('entree')
+    viewer.value?.send('select', { key })
+  }
   if (!typeEdl.value || !connu) {
     if (!connu) console.warn(`[AGL3D] Élément inconnu du dossier : ${key}`)
     selection.value = null
