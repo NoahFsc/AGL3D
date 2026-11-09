@@ -186,9 +186,16 @@ function onMessage(message: UnityToVueMessage) {
     <section class="overflow-hidden rounded-lg border border-neutrals-50">
       <div class="relative md:[&_.viewer]:min-h-[660px] max-md:[&_.viewer]:aspect-[4/5]!">
         <UnityViewer ref="viewer" @message="onMessage" />
-        <HomeScreen :mode="mode" :entree-faite="entreeFaite" @choisir="choisir" />
+        <!-- Pas de boutons tant que la 3D n'a pas envoyé ready : l'écran de chargement
+             ou d'erreur de UnityViewer occupe la place. -->
+        <HomeScreen
+          v-if="unityPret"
+          :mode="mode"
+          :entree-faite="entreeFaite"
+          @choisir="choisir"
+        />
         <RoomButtons
-          v-if="mode !== 'accueil'"
+          v-if="unityPret && mode !== 'accueil'"
           :pieces="pieces"
           :courante="pieceCourante"
           @focus="allerDans"
