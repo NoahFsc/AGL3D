@@ -6,6 +6,12 @@ import {
   type VueToUnityType,
 } from '@/types/bridge'
 import type { UnityInstance } from '@/types/unity-loader'
+import {
+  classerErreur,
+  diagnostiquerScript,
+  ErreurChargement,
+  webglDisponible,
+} from './erreurChargement'
 
 export interface UseUnityOptions {
   /** Dossier du build WebGL servi par Vite. */
@@ -16,6 +22,8 @@ export interface UseUnityOptions {
   compressedExt?: string
   /** Appelé pour chaque message Unity → Vue. */
   onMessage?: (message: UnityToVueMessage) => void
+  /** Délai d'attente de `ready` après le démarrage du build, en millisecondes. */
+  readyTimeout?: number
 }
 
 /** Nom du GameObject portant `WebBridge` dans la scène Unity. */
@@ -33,17 +41,20 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
     buildName = 'unity',
     compressedExt = '.unityweb',
     onMessage,
+    readyTimeout = 30_000,
   } = options
 
   const instance = shallowRef<UnityInstance | null>(null)
   const progress = ref(0)
   const isLoaded = ref(false)
-  const error = ref<Error | null>(null)
+  const error = shallowRef<ErreurChargement | null>(null)
   /** Vrai quand Unity a envoyé `ready` : les messages partent directement. */
   const isReady = ref(false)
 
   /** Messages JSON en attente de `ready`, dans l'ordre d'envoi. */
   let pending: string[] = []
+  /** Minuterie qui signale un build démarré mais muet (pas de `ready`). */
+  let attenteReady: ReturnType<typeof setTimeout> | undefined
 
   function send<T extends VueToUnityType>(type: T, payload: VueToUnityPayloads[T]): void {
     const json = JSON.stringify({ type, payload })
@@ -70,6 +81,7 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
     const message = (event as CustomEvent<UnityToVueMessage>).detail
     if (message.type === 'ready') {
       isReady.value = true
+      clearTimeout(attenteReady)
       // Les messages en attente partent avant ceux que onMessage enverra en réponse.
       flush()
     }
@@ -83,7 +95,10 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
       script.src = `${buildUrl}/${buildName}.loader.js`
       script.async = true
       script.onload = () => resolve()
-      script.onerror = () => reject(new Error(`Loader Unity introuvable : ${script.src}`))
+      script.onerror = () => {
+        script.remove()
+        diagnostiquerScript(script.src).then(reject, reject)
+      }
       document.body.appendChild(script)
     })
   }
@@ -93,8 +108,13 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
     if (!el) return
     el.addEventListener(UNITY_EVENT, handleEvent)
     try {
+      if (!webglDisponible()) {
+        throw new ErreurChargement('webgl', 'Ce navigateur ne peut pas créer de contexte WebGL.')
+      }
       await loadLoaderScript()
-      if (!window.createUnityInstance) throw new Error('createUnityInstance indisponible')
+      if (!window.createUnityInstance) {
+        throw new ErreurChargement('inconnu', 'createUnityInstance indisponible')
+      }
       instance.value = await window.createUnityInstance(
         el,
         {
@@ -103,17 +123,33 @@ export function useUnity(canvas: Ref<HTMLCanvasElement | null>, options: UseUnit
           codeUrl: `${buildUrl}/${buildName}.wasm${compressedExt}`,
           companyName: 'AGL3D',
           productName: 'AGL3D',
+          // Sans ce rappel, Unity affiche ses propres bandeaux par-dessus la page.
+          showBanner: (message, type) => {
+            if (type === 'error') console.error('[Unity]', message)
+            else console.warn('[Unity]', message)
+          },
         },
         (p) => (progress.value = p),
       )
       isLoaded.value = true
       flush()
+      if (!isReady.value) {
+        attenteReady = setTimeout(() => {
+          if (isReady.value) return
+          error.value = new ErreurChargement(
+            'muet',
+            `Unity n'a pas envoyé ready ${readyTimeout / 1000} s après son démarrage.`,
+          )
+        }, readyTimeout)
+      }
     } catch (e) {
-      error.value = e instanceof Error ? e : new Error(String(e))
+      error.value = classerErreur(e)
+      console.error('[useUnity] Chargement impossible', e)
     }
   })
 
   onBeforeUnmount(async () => {
+    clearTimeout(attenteReady)
     canvas.value?.removeEventListener(UNITY_EVENT, handleEvent)
     const current = instance.value
     instance.value = null
