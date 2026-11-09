@@ -5,8 +5,9 @@ using UnityEngine;
 namespace AGL3D.LotB
 {
     /// <summary>
-    /// Teinte un élément inspectable dans la couleur du survol, avec un court fondu.
-    /// Ajouté automatiquement par <see cref="HoverHighlighter"/> sur l'élément survolé.
+    /// Teinte un élément inspectable dans la couleur réservée au survol et à la sélection,
+    /// avec un court fondu. L'élément sélectionné est plus teinté que l'élément survolé.
+    /// Ajouté automatiquement par <see cref="HoverHighlighter"/> sur l'élément concerné.
     /// Seuls les renderers de l'élément lui-même sont teintés (pas l'étiquette ni un
     /// éventuel repère enfant), via un MaterialPropertyBlock : les matériaux partagés
     /// ne sont jamais modifiés.
@@ -29,24 +30,38 @@ namespace AGL3D.LotB
         private MaterialPropertyBlock block;
 
         private Color color;
-        private float strength;
+        private float hoverStrength;
+        private float selectedStrength;
         private float fadeDuration;
         private float amount;
         private bool hovered;
+        private bool selected;
 
         /// <summary>Vrai tant que le pointeur est sur l'élément.</summary>
         public bool Hovered => hovered;
 
-        public void Configure(Color highlightColor, float highlightStrength, float fade)
+        /// <summary>Vrai tant que l'élément est sélectionné (fiche ouverte).</summary>
+        public bool Selected => selected;
+
+        private float Goal => selected ? selectedStrength : hovered ? hoverStrength : 0f;
+
+        public void Configure(Color highlightColor, float hover, float selection, float fade)
         {
             color = highlightColor;
-            strength = highlightStrength;
+            hoverStrength = hover;
+            selectedStrength = selection;
             fadeDuration = fade;
         }
 
         public void SetHovered(bool value)
         {
             hovered = value;
+            enabled = true;
+        }
+
+        public void SetSelected(bool value)
+        {
+            selected = value;
             enabled = true;
         }
 
@@ -72,7 +87,7 @@ namespace AGL3D.LotB
 
         private void Update()
         {
-            float goal = hovered ? 1f : 0f;
+            float goal = Goal;
             amount = fadeDuration > 0f
                 ? Mathf.MoveTowards(amount, goal, Time.unscaledDeltaTime / fadeDuration)
                 : goal;
@@ -83,9 +98,9 @@ namespace AGL3D.LotB
         private void OnDisable()
         {
             // Si l'objet est désactivé en plein fondu, on termine l'état visé.
-            if (!hovered && amount > 0f)
+            if (!Mathf.Approximately(amount, Goal))
             {
-                amount = 0f;
+                amount = Goal;
                 Apply();
             }
         }
@@ -96,7 +111,7 @@ namespace AGL3D.LotB
             {
                 if (t.Renderer == null) continue;
                 t.Renderer.GetPropertyBlock(block);
-                block.SetColor(t.PropertyId, Color.Lerp(t.BaseColor, color, amount * strength));
+                block.SetColor(t.PropertyId, Color.Lerp(t.BaseColor, color, amount));
                 t.Renderer.SetPropertyBlock(block);
             }
         }

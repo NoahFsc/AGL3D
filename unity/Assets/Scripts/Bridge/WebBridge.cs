@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -54,9 +55,14 @@ namespace AGL3D.Bridge
 #endif
         }
 
-        private void Start()
+        private IEnumerator Start()
         {
-            // Les InspectableElement s'enregistrent dans leur OnEnable, donc avant Start.
+            // La page répond à ready tout de suite, pendant l'appel à Emit : init et les
+            // messages en attente arrivent avant la fin de cette méthode. On attend donc
+            // une image, pour que tous les scripts aient fait leur Start et se soient
+            // abonnés aux événements ci-dessus.
+            yield return null;
+            // Les InspectableElement s'enregistrent dans leur OnEnable, donc bien avant.
             Emit("ready", new ReadyPayload { keys = InspectableElement.All.Select(e => e.Key).ToArray() });
         }
 
