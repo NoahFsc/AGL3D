@@ -1,24 +1,28 @@
 using AGL3D.Bridge;
 using AGL3D.LotA;
+using AGL3D.LotB;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace AGL3D.LotC
 {
     /// <summary>
     /// Fait tourner lentement la maquette en mode <c>accueil</c> (message <c>init</c>).
-    /// Dans tout autre mode, la ramène à sa position de départ en environ une seconde, pour
-    /// que les vues de caméra de <c>focusRoom</c> restent alignées sur les pièces.
-    /// Pendant la rotation, les murs (<see cref="CameraObstacle"/>) sont ignorés par les rayons :
-    /// sinon les cloisons qui défilent devant la caméra la font plonger vers la maquette.
+    /// La rotation se fige dès qu'on interagit avec la 3D : l'élément sous la souris ne bouge
+    /// plus. Si le mode change pendant qu'elle tourne, la maquette revient en place en une
+    /// seconde. Avant <c>focusRoom</c> et <c>focusElement</c>, elle est remise en place d'un coup
+    /// pour que la caméra vise les bons endroits : d'où l'ordre d'exécution, qui l'abonne avant
+    /// <see cref="RoomFocus"/> et <see cref="ElementFocus"/>.
     /// </summary>
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-100)]
     public class RotationAccueil : MonoBehaviour
     {
         [Tooltip("Maquette à faire tourner (prefab Appartement).")]
         [SerializeField] private Transform maquette;
         [Tooltip("Vitesse de rotation en mode accueil, en degrés par seconde.")]
         [SerializeField] private float vitesse = 8f;
-        [Tooltip("Durée du retour à la position de départ, en secondes.")]
+        [Tooltip("Durée du retour à la position de départ quand le mode change, en secondes.")]
         [SerializeField] private float dureeRetour = 1f;
 
         private WebBridge bridge;
@@ -27,10 +31,9 @@ namespace AGL3D.LotC
         private Quaternion rotationDepart;
         private float angle;
         private bool enAccueil;
+        private bool retourEnCours;
         private float angleDebutRetour;
         private float tempsRetour;
-        private CameraObstacle[] murs;
-        private int[] calquesMurs;
 
         private void Start()
         {
@@ -43,57 +46,83 @@ namespace AGL3D.LotC
             positionDepart = maquette.position;
             rotationDepart = maquette.rotation;
             pivot = CentreMaquette();
-            murs = maquette.GetComponentsInChildren<CameraObstacle>(true);
-            calquesMurs = new int[murs.Length];
-            for (int i = 0; i < murs.Length; i++) calquesMurs[i] = murs[i].gameObject.layer;
 
             bridge = WebBridge.Instance;
-            if (bridge != null) bridge.InitReceived += OnInitReceived;
+            if (bridge == null) return;
+            bridge.InitReceived += OnInitReceived;
+            bridge.FocusRoomReceived += OnFocusRoom;
+            bridge.FocusElementReceived += OnFocusElement;
         }
 
         private void OnDestroy()
         {
-            if (bridge != null) bridge.InitReceived -= OnInitReceived;
+            if (bridge == null) return;
+            bridge.InitReceived -= OnInitReceived;
+            bridge.FocusRoomReceived -= OnFocusRoom;
+            bridge.FocusElementReceived -= OnFocusElement;
         }
 
-        private void OnInitReceived(InitPayload payload)
-        {
-            DefinirMode(payload.mode);
-        }
+        private void OnInitReceived(InitPayload payload) => DefinirMode(payload.mode);
 
-        /// <summary>Lance la rotation en mode accueil, sinon ramène la maquette en place.</summary>
+        private void OnFocusRoom(FocusRoomPayload payload) => RemettreEnPlace();
+
+        private void OnFocusElement(FocusElementPayload payload) => RemettreEnPlace();
+
+        /// <summary>Lance la rotation en mode accueil ; ailleurs, ramène en douceur une maquette qui tourne.</summary>
         public void DefinirMode(string mode)
         {
-            bool accueil = mode == "accueil";
-            if (accueil == enAccueil) return;
-            enAccueil = accueil;
-            if (accueil)
+            if (mode == "accueil")
             {
-                IgnorerMurs(true);
+                enAccueil = true;
+                retourEnCours = false;
                 return;
             }
+            if (!enAccueil) return;
+            enAccueil = false;
+            retourEnCours = true;
             angleDebutRetour = Mathf.DeltaAngle(0f, angle);
             tempsRetour = 0f;
-            if (angle == 0f) IgnorerMurs(false);
         }
 
         private void Update()
         {
             if (enAccueil)
             {
+                if (Interaction())
+                {
+                    enAccueil = false;
+                    return;
+                }
                 angle = Mathf.Repeat(angle + vitesse * Time.deltaTime, 360f);
+                Appliquer();
             }
-            else if (angle != 0f)
+            else if (retourEnCours)
             {
                 tempsRetour += Time.deltaTime;
                 float t = dureeRetour > 0f ? Mathf.Clamp01(tempsRetour / dureeRetour) : 1f;
                 angle = Mathf.Lerp(angleDebutRetour, 0f, Mathf.SmoothStep(0f, 1f, t));
-                if (t >= 1f) IgnorerMurs(false);
+                Appliquer();
+                if (t >= 1f) retourEnCours = false;
             }
-            else
-            {
-                return;
-            }
+        }
+
+        /// <summary>Vrai si l'utilisateur clique, tourne la vue ou zoome sur la 3D. Le survol ne compte pas.</summary>
+        private static bool Interaction()
+        {
+            var souris = Mouse.current;
+            if (souris == null || !CanvasPointer.IsInside) return false;
+            return souris.leftButton.wasPressedThisFrame
+                || souris.rightButton.wasPressedThisFrame
+                || souris.middleButton.wasPressedThisFrame
+                || souris.scroll.ReadValue().y != 0f;
+        }
+
+        /// <summary>Remet la maquette à sa position de départ d'un coup et arrête toute rotation.</summary>
+        private void RemettreEnPlace()
+        {
+            enAccueil = false;
+            retourEnCours = false;
+            angle = 0f;
             Appliquer();
         }
 
@@ -104,16 +133,7 @@ namespace AGL3D.LotC
             maquette.SetPositionAndRotation(
                 pivot + rotation * (positionDepart - pivot),
                 rotation * rotationDepart);
-        }
-
-        /// <summary>Place les murs sur le calque Ignore Raycast, ou leur rend leur calque d'origine.</summary>
-        private void IgnorerMurs(bool ignorer)
-        {
-            int ignoreRaycast = LayerMask.NameToLayer("Ignore Raycast");
-            for (int i = 0; i < murs.Length; i++)
-            {
-                murs[i].gameObject.layer = ignorer ? ignoreRaycast : calquesMurs[i];
-            }
+            Physics.SyncTransforms();
         }
 
         /// <summary>Centre des rendus de la maquette, pour qu'elle tourne sur elle-même.</summary>
