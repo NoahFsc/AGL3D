@@ -19,9 +19,10 @@ namespace AGL3D.LotA.Editor
         private const string MurMatPath = "Assets/Lot-A/Appartement/Materials/Mur.mat";
 
         [MenuItem("AGL3D/Lot A/Murs/Habillage (chapeaux, façade, couleurs)")]
-        public static void HabillageMurs()
+        public static void HabillageMurs() => Modifier(HabillageMurs);
+
+        private static void HabillageMurs(GameObject appartement)
         {
-            var appartement = PrefabUtility.LoadPrefabContents(AppartementPath);
             var t = appartement.transform;
 
             var murs = new List<Bounds>();
@@ -96,9 +97,7 @@ namespace AGL3D.LotA.Editor
                     }
             }
 
-            PrefabUtility.SaveAsPrefabAsset(appartement, AppartementPath);
-            PrefabUtility.UnloadPrefabContents(appartement);
-            AssetDatabase.SaveAssets();
+            EnregistrerMaillages($"{MaillagesAppartementDir}/Habillage.asset", habillage);
         }
 
         /// <summary>
