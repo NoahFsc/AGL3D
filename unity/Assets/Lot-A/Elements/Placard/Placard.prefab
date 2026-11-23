@@ -29,7 +29,7 @@ Transform:
   m_LocalScale: {x: 0.77436876, y: 0.48936176, z: 0.8596327}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4228586444612121199}
+  - {fileID: 3552874798449207276}
   m_Father: {fileID: 8028719303994601056}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3725064619597014487
@@ -100,7 +100,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AGL3D.Bridge.InspectableElement
   key: chambre.placard
---- !u!1001 &8176900175167859791
+--- !u!1001 &8834518047526369740
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -157,8 +157,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb8ddb9818238fc43b6b20c0bd7a9309, type: 3}
---- !u!4 &4228586444612121199 stripped
+--- !u!4 &3552874798449207276 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5464233682071363104, guid: cb8ddb9818238fc43b6b20c0bd7a9309, type: 3}
-  m_PrefabInstance: {fileID: 8176900175167859791}
+  m_PrefabInstance: {fileID: 8834518047526369740}
   m_PrefabAsset: {fileID: 0}
