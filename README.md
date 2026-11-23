@@ -82,6 +82,24 @@ Dans Unity Hub, choisissez Add, puis Add project from disk, et sélectionnez le 
 Au premier lancement, Unity crée les fichiers `.meta` des scripts du pont. Une seule
 personne les commite, pour que tout le monde partage les mêmes GUID.
 
+## Packs de meubles
+
+Certains meubles de la maquette viennent de deux packs gratuits de l'Asset Store. Leur
+licence interdit de les publier dans un dépôt public : Git les ignore, et chacun les
+importe depuis son compte Unity. Sans eux, ces meubles apparaissent comme des prefabs
+manquants.
+
+| Pack | Utilisé pour | Dossier |
+| ---- | ------------ | ------- |
+| [Low Poly Furniture Pack Free](https://assetstore.unity.com/packages/package/389770) (IGS) | porte d'entrée, tableau | `Assets/LowPolyFurniturePackFree/` |
+| [Furniture Mega Pack - Free](https://assetstore.unity.com/packages/package/330002) | canapé | `Assets/Furniture Mega Pack/` |
+
+Pour chaque pack :
+
+1. Sur l'Asset Store, cliquez sur Add to My Assets.
+2. Dans Window > Package Manager > My Assets, sélectionnez le pack, puis Download et
+   Import.
+
 ## Réglages Web à faire une fois
 
 Ces réglages modifient `ProjectSettings/`. Prévenez l'équipe avant de les commiter.

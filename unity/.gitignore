@@ -137,3 +137,10 @@ Desktop.ini
 
 # Fichiers laissés par le package Performance Testing quand un build échoue
 /[Aa]ssets/Resources/PerformanceTestRun*.json*
+
+# Packs de l'Asset Store : leur licence interdit de les publier dans un dépôt public.
+# Chacun les importe depuis son compte Unity (voir le README, « Packs de meubles »).
+/[Aa]ssets/LowPolyFurniturePackFree/
+/[Aa]ssets/LowPolyFurniturePackFree.meta
+/[Aa]ssets/Furniture Mega Pack/
+/[Aa]ssets/Furniture Mega Pack.meta
