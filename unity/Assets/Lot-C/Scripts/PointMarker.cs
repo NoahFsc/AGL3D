@@ -35,6 +35,18 @@ namespace AGL3D.LotC
         [Tooltip("Taille minimale, en part de la pleine taille.")]
         [SerializeField, Range(0.2f, 1f)] private float tailleMini = 0.6f;
 
+        [Header("Apparition (C8)")]
+        [Tooltip("Durée du « pop » de l'étiquette qui apparaît ou change d'état, en secondes.")]
+        [SerializeField] private float dureePop = 0.4f;
+        [Tooltip("Taille de départ du pop quand l'étiquette change d'état (elle part de 0 en apparaissant).")]
+        [SerializeField, Range(0f, 1f)] private float departChangement = 0.75f;
+        [Tooltip("Durée du halo qui s'élargit autour du cadre, en secondes.")]
+        [SerializeField] private float dureeHalo = 0.7f;
+        [Tooltip("De combien le halo dépasse du cadre à la fin, en unités de l'étiquette.")]
+        [SerializeField] private float ecartHalo = 18f;
+        [Tooltip("Opacité du halo à son départ.")]
+        [SerializeField, Range(0f, 1f)] private float opaciteHalo = 0.55f;
+
         private struct Teinte
         {
             public Color Fond, Bordure, Texte;
@@ -54,6 +66,13 @@ namespace AGL3D.LotC
 
         private Camera cam;
         private float hauteurTige = -1f;
+
+        /// <summary>Instant (Time.time) où commence l'animation d'apparition ; négatif s'il n'y en a pas.</summary>
+        private float animationDebut = -1f;
+        /// <summary>Vrai quand l'étiquette apparaît : elle part de rien.</summary>
+        private bool depuisRien;
+        private Image halo;
+        private Color couleurHalo;
 
         /// <summary>État affiché : "bon", "usage", "mauvais", ou vide pour un élément pas encore noté.</summary>
         public string Etat { get; private set; }
@@ -104,9 +123,10 @@ namespace AGL3D.LotC
 
         /// <summary>
         /// Met à jour le texte, l'icône et les couleurs. Un état vide donne une étiquette grise ;
-        /// un état inconnu est signalé et ignoré.
+        /// un état inconnu est signalé et ignoré. Une étiquette qui apparaît, ou dont l'état
+        /// change, joue son animation d'apparition (C8) après <paramref name="delai"/> secondes.
         /// </summary>
-        public void Afficher(int numero, string libelle, string etat, Genre genre)
+        public void Afficher(int numero, string libelle, string etat, Genre genre, float delai = 0f)
         {
             Teinte teinte;
             if (genre != Genre.Element) teinte = Compteur;
@@ -119,8 +139,16 @@ namespace AGL3D.LotC
                 Debug.LogWarning($"[PointMarker] État inconnu : \"{etat}\".", this);
                 return;
             }
+            bool apparait = Etat == null;
+            bool change = !apparait && Etat != (etat ?? string.Empty);
             Etat = etat ?? string.Empty;
             Numero = numero;
+            couleurHalo = teinte.Texte;
+            if (apparait || change)
+            {
+                animationDebut = Time.time + Mathf.Max(delai, 0f);
+                depuisRien = apparait;
+            }
 
             texte.text = $"{numero} · {libelle}";
             texte.color = teinte.Texte;
@@ -147,12 +175,87 @@ namespace AGL3D.LotC
             float hauteurVisible = cam.orthographic
                 ? cam.orthographicSize * 2f
                 : 2f * distance * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
-            etiquette.localScale = Vector3.one * (hauteurVisible / Mathf.Max(Screen.height, 1) * PixelsParUnite(distance));
+            float pop = AnimerApparition();
+            etiquette.localScale = Vector3.one * (hauteurVisible / Mathf.Max(Screen.height, 1) * PixelsParUnite(distance) * pop);
 
             Rect zone = cadre.rect;
             Vector2 centre = (Vector2)cadre.localPosition + zone.center;
             zoneClic.center = new Vector3(centre.x, centre.y, 0f);
             zoneClic.size = new Vector3(zone.width, zone.height, 1f);
+        }
+
+        /* ----------------------------- Apparition (C8) ----------------------------- */
+
+        /// <summary>
+        /// Avance l'animation d'apparition : renvoie le facteur de taille de l'étiquette (un pop
+        /// avec un léger rebond) et fait grandir puis disparaître le halo autour du cadre.
+        /// </summary>
+        private float AnimerApparition()
+        {
+            if (animationDebut < 0f) return 1f;
+            float t = Time.time - animationDebut;
+            if (t < 0f)
+            {
+                // En attente de son tour : une étiquette qui apparaît reste cachée.
+                AfficherHalo(false);
+                return depuisRien ? 0f : 1f;
+            }
+
+            float pop = 1f;
+            if (t < dureePop)
+            {
+                float depart = depuisRien ? 0f : departChangement;
+                pop = Mathf.LerpUnclamped(depart, 1f, SortieAvecRebond(t / dureePop));
+            }
+
+            float u = dureeHalo > 0f ? t / dureeHalo : 1f;
+            if (u < 1f)
+            {
+                AfficherHalo(true);
+                Rect zone = cadre.rect;
+                var rect = halo.rectTransform;
+                rect.anchoredPosition = cadre.anchoredPosition + zone.center;
+                rect.sizeDelta = zone.size + Vector2.one * (ecartHalo * 2f * Mathf.Sqrt(u));
+                var couleur = couleurHalo;
+                couleur.a = opaciteHalo * (1f - u) * (1f - u);
+                halo.color = couleur;
+            }
+            else
+            {
+                AfficherHalo(false);
+            }
+
+            if (t >= Mathf.Max(dureePop, dureeHalo)) animationDebut = -1f;
+            return pop;
+        }
+
+        /// <summary>Le halo est créé à la première animation, derrière le cadre, avec son sprite arrondi.</summary>
+        private void AfficherHalo(bool visible)
+        {
+            if (halo == null)
+            {
+                if (!visible) return;
+                var objet = new GameObject("Halo", typeof(RectTransform), typeof(Image));
+                objet.transform.SetParent(etiquette, false);
+                objet.transform.SetAsFirstSibling();
+                halo = objet.GetComponent<Image>();
+                halo.sprite = bordure.sprite;
+                halo.type = Image.Type.Sliced;
+                halo.pixelsPerUnitMultiplier = bordure.pixelsPerUnitMultiplier;
+                halo.material = bordure.material;
+                halo.raycastTarget = false;
+                halo.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            }
+            if (halo.gameObject.activeSelf != visible) halo.gameObject.SetActive(visible);
+        }
+
+        /// <summary>Courbe « ease-out-back » : dépasse un peu la cible avant de s'y poser.</summary>
+        private static float SortieAvecRebond(float u)
+        {
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1f;
+            float v = u - 1f;
+            return 1f + c3 * v * v * v + c1 * v * v;
         }
     }
 }

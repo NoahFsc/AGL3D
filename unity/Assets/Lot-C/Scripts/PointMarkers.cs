@@ -27,6 +27,8 @@ namespace AGL3D.LotC
         [SerializeField] private float ecart = 4f;
         [Tooltip("Marge gardée entre une étiquette et le bord de l'écran, en pixels CSS.")]
         [SerializeField] private float marge = 6f;
+        [Tooltip("Délai entre deux étiquettes qui apparaissent en même temps, en secondes (C8).")]
+        [SerializeField] private float decalageApparition = 0.06f;
 
         private readonly Dictionary<string, PointMarker> reperes = new Dictionary<string, PointMarker>();
         private readonly List<Placement> aPlacer = new List<Placement>();
@@ -100,6 +102,8 @@ namespace AGL3D.LotC
         {
             var notes = new HashSet<string>();
             int numero = 0;
+            // Les nouvelles étiquettes apparaissent en cascade (C8).
+            float delai = 0f;
             foreach (var point in payload.points ?? new PointData[0])
             {
                 var element = InspectableElement.Find(point.key);
@@ -108,15 +112,18 @@ namespace AGL3D.LotC
                     Debug.LogWarning($"[PointMarkers] Élément inconnu : \"{point.key}\".", this);
                     continue;
                 }
+                bool nouveau = false;
                 if (!reperes.TryGetValue(point.key, out var repere) || repere == null)
                 {
                     repere = Creer(element);
                     reperes[point.key] = repere;
+                    nouveau = true;
                 }
                 repere.gameObject.SetActive(DansPiece(point.key));
                 numero++;
                 string libelle = string.IsNullOrEmpty(point.label) ? point.key : point.label;
-                repere.Afficher(numero, libelle, point.etat, GenreDe(point.key));
+                repere.Afficher(numero, libelle, point.etat, GenreDe(point.key), nouveau ? delai : 0f);
+                if (nouveau) delai += decalageApparition;
                 notes.Add(point.key);
             }
 
