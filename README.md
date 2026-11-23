@@ -91,14 +91,18 @@ manquants.
 
 | Pack | Utilisé pour | Dossier |
 | ---- | ------------ | ------- |
-| [Low Poly Furniture Pack Free](https://assetstore.unity.com/packages/package/389770) (IGS) | porte d'entrée, tableaux, armoire, bureau et chaise, lampes, plante | `Assets/LowPolyFurniturePackFree/` |
-| [Furniture Mega Pack - Free](https://assetstore.unity.com/packages/package/330002) | canapé, lit, tables de chevet | `Assets/Furniture Mega Pack/` |
+| [Low Poly Furniture Pack Free](https://assetstore.unity.com/packages/package/389770) (IGS) | porte d'entrée, tableaux, armoire, bureau et chaise, lampes, plante, corbeille de fruits | `Assets/LowPolyFurniturePackFree/` |
+| [Furniture Mega Pack - Free](https://assetstore.unity.com/packages/package/330002) | canapé, lit, tables de chevet ; cuisine : meubles bas, évier, plaque, micro-ondes, réfrigérateur, table et chaises | `Assets/Furniture Mega Pack/` |
 
 Pour chaque pack :
 
 1. Sur l'Asset Store, cliquez sur Add to My Assets.
 2. Dans Window > Package Manager > My Assets, sélectionnez le pack, puis Download et
    Import.
+
+Les textures du Furniture Mega Pack sont en 2048 px. Le script
+`Lot-A/Editor/TexturesPacks.cs` les limite à 512 px dans le build Web, à chaque import :
+sans lui, le build passerait de 15 à près de 50 Mo.
 
 ## Réglages Web à faire une fois
 
