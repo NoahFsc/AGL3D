@@ -43,6 +43,15 @@ namespace AGL3D.LotC
         /// <summary>Pièce dont on montre les étiquettes ; vide pour toutes.</summary>
         private string pieceAffichee = string.Empty;
 
+        /// <summary>
+        /// Ajoute le passage au rouge du mode Comparer (C6) sur le même objet, sans toucher à
+        /// la scène : il reçoit les mêmes messages que les étiquettes.
+        /// </summary>
+        private void Awake()
+        {
+            if (!TryGetComponent<PassageAuRouge>(out _)) gameObject.AddComponent<PassageAuRouge>();
+        }
+
         private void Start()
         {
             bridge = WebBridge.Instance;
