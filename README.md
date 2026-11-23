@@ -100,6 +100,25 @@ Pour chaque pack :
 2. Dans Window > Package Manager > My Assets, sélectionnez le pack, puis Download et
    Import.
 
+### Alléger le Furniture Mega Pack
+
+Le Furniture Mega Pack compte 511 prefabs, alors que la maquette n'en utilise que 12 modèles. Une fois le
+pack importé, lancez une fois le menu
+**AGL3D > Lot A > Alléger le Furniture Mega Pack** : il garde les modèles utilisés avec
+leurs FBX, matériaux et textures, et supprime tout le reste (autres meubles, scènes de
+démo). Les fichiers gardés conservent leur `.meta`, donc les prefabs de la maquette les
+retrouvent. Le pack passe de 1 524 fichiers (1,7 Go) à 55 (91 Mo), et le premier
+import d'un clone neuf passe de 78 à 40 s.
+
+Le pack étant ignoré par Git, cette suppression ne voyage pas : chacun lance le menu sur
+sa machine, et de nouveau après chaque réimport du pack. La liste des modèles gardés est
+dans `Lot-A/Editor/AllegerMegaPack.cs` : un générateur qui utilise un nouveau modèle du
+pack doit l'y ajouter, et il faut alors réimporter le pack pour le retrouver.
+
+On peut aussi, dans la fenêtre Import du Package Manager, cliquer sur None puis cocher
+à la main les 55 fichiers gardés (prefabs, FBX, matériaux, textures), listés dans la
+console par le menu : c'est long et facile à rater, le menu est plus sûr.
+
 Les textures du Furniture Mega Pack sont en 2048 px. Le script
 `Lot-A/Editor/TexturesPacks.cs` les limite à 512 px dans le build Web, à chaque import :
 sans lui, le build passerait de 15 à près de 50 Mo.
