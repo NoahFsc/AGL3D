@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Liste du mode Comparer, rangée par pièce. Un élément dont l'état a changé montre
+ * Liste complète du mode Comparer, sous la 3D, rangée par pièce (une colonne par pièce
+ * quand la place le permet). La liste des défauts (`DefectList`) reste à droite de la 3D. Un élément dont l'état a changé montre
  * « avant → après » ; un élément inchangé montre son état une seule fois. Pour un
  * compteur, la ligne donne la consommation entre les deux relevés. Un clic sur une ligne
  * émet `ouvrir` pour ouvrir la fiche de comparaison de l'élément.
@@ -37,7 +38,6 @@ const groupes = computed(() =>
     .filter((g) => g.lignes.length > 0),
 )
 
-const nbDegrades = computed(() => lignes.value.filter((l) => l.evolution === 'degrade').length)
 const nbAmeliores = computed(() => lignes.value.filter((l) => l.evolution === 'ameliore').length)
 </script>
 
@@ -47,16 +47,15 @@ const nbAmeliores = computed(() => lignes.value.filter((l) => l.evolution === 'a
     aria-label="Comparaison de l'entrée et de la sortie"
   >
     <header class="flex flex-col gap-1">
-      <h2 class="text-h3 font-semibold">Comparer&nbsp;: entrée et sortie</h2>
-      <p v-if="nbDegrades > 0" class="font-semibold text-mauvais-500">
-        {{ nbDegrades }} élément{{ nbDegrades > 1 ? 's' : '' }} dégradé{{ nbDegrades > 1 ? 's' : '' }}
-      </p>
-      <p v-else class="font-semibold text-bon-500">Aucun élément dégradé</p>
+      <h2 class="text-h3 font-semibold">Tous les éléments</h2>
+      <p class="text-caption text-neutrals-200">État à l'entrée et à la sortie</p>
       <p v-if="nbAmeliores > 0" class="text-caption text-neutrals-200">
         {{ nbAmeliores }} élément{{ nbAmeliores > 1 ? 's' : '' }} en meilleur état qu'à l'entrée
       </p>
     </header>
 
+    <!-- Sous la 3D, la liste a toute la largeur : une colonne par pièce. -->
+    <div class="grid gap-x-8 gap-y-4 md:grid-cols-2 2xl:grid-cols-3">
     <div v-for="groupe in groupes" :key="groupe.piece.key" class="flex flex-col gap-1">
       <h3 class="px-2 font-semibold text-neutrals-300">{{ groupe.piece.label }}</h3>
       <ul class="flex flex-col">
@@ -69,7 +68,7 @@ const nbAmeliores = computed(() => lignes.value.filter((l) => l.evolution === 'a
             @click="emit('ouvrir', ligne.element.key)"
           >
             <span class="min-w-0 flex-1">
-              <span class="block truncate">{{ ligne.element.label }}</span>
+              <span class="block">{{ ligne.element.label }}</span>
               <span
                 v-if="ligne.consommation !== null"
                 class="block text-caption"
@@ -134,6 +133,7 @@ const nbAmeliores = computed(() => lignes.value.filter((l) => l.evolution === 'a
           </button>
         </li>
       </ul>
+    </div>
     </div>
   </section>
 </template>

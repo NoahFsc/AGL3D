@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AglShell from '@/components/AglShell.vue'
 import ComparisonCard from '@/components/ComparisonCard.vue'
 import ComparisonList from '@/components/ComparisonList.vue'
+import DefectList from '@/components/DefectList.vue'
 import ElementCard, { type SaisieConstat } from '@/components/ElementCard.vue'
 import ElementChecklist from '@/components/ElementChecklist.vue'
 import type { ModeChoisi } from '@/components/HomeScreen.vue'
@@ -409,16 +410,28 @@ function onMessage(message: UnityToVueMessage) {
       :selection="selection?.key ?? null"
       @ouvrir="ouvrirDepuisListe"
     />
-    <ComparisonList
-      v-else-if="unityPret && dossier && mode === 'comparer'"
-      class="xl:sticky xl:top-4"
-      :pieces="dossier.pieces"
-      :elements="dossier.elements"
-      :entree="edlEntree"
-      :sortie="edlSortie"
-      :selection="selection?.key ?? null"
-      @ouvrir="ouvrirDepuisListe"
-    />
+    <!-- Mode Comparer : les défauts (C7) à droite de la 3D, tous les éléments en dessous,
+         sur la largeur de la 3D. Sur un écran étroit, tout s'empile dans cet ordre. -->
+    <template v-else-if="unityPret && dossier && mode === 'comparer'">
+      <DefectList
+        class="xl:sticky xl:top-4 xl:row-span-2"
+        :pieces="dossier.pieces"
+        :elements="dossier.elements"
+        :entree="edlEntree"
+        :sortie="edlSortie"
+        :selection="selection?.key ?? null"
+        @ouvrir="ouvrirDepuisListe"
+      />
+      <ComparisonList
+        class="xl:col-start-1"
+        :pieces="dossier.pieces"
+        :elements="dossier.elements"
+        :entree="edlEntree"
+        :sortie="edlSortie"
+        :selection="selection?.key ?? null"
+        @ouvrir="ouvrirDepuisListe"
+      />
+    </template>
     </div>
 
     <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
