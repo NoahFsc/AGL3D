@@ -13,3 +13,22 @@ Desktop.ini
 
 # Réglages locaux de Claude Code
 .claude/
+
+# Projet Unity « fantôme » généré par erreur à la racine du dépôt.
+# Le vrai projet Unity est dans unity/ (voir unity/.gitignore).
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Pp]rojectSettings/
+/[Pp]ackages/
+/[Aa]ssets/
+/[Dd]ata/
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.userprefs
+.vscode/
