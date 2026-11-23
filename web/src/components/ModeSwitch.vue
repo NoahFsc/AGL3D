@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
  * Changement de mode (C4) : les boutons Entrée, Sortie et Comparer de `HomeScreen`, et le
- * court message d'aide affiché après un clic sur Entrée. Émet `choisir` avec le mode
- * cliqué ; la page envoie alors `init`, `setPoints` et, pour Entrée, `focusRoom`.
+ * court message d'aide affiché après un clic sur Entrée ou Sortie, les deux modes où l'on
+ * note. Émet `choisir` avec le mode cliqué ; la page envoie alors `init` et `setPoints`.
+ * La caméra ne bouge pas : seuls les boutons de pièce la déplacent.
  *
  * Le message disparaît après quelques secondes, dès qu'une fiche s'ouvre (l'utilisateur a
- * compris où cliquer) ou quand on quitte l'entrée.
+ * compris où cliquer) ou quand on passe en Comparer.
  */
 import { onBeforeUnmount, ref, watch } from 'vue'
 import HomeScreen, { type ModeChoisi } from '@/components/HomeScreen.vue'
@@ -31,10 +32,15 @@ function masquerAide() {
   aideVisible.value = false
 }
 
+/** Modes où l'on note des éléments : le message d'aide y a sa place. */
+function estModeDeNotation(mode: ModeAffichage): boolean {
+  return mode === 'entree' || mode === 'sortie'
+}
+
 function choisir(mode: ModeChoisi) {
   emit('choisir', mode)
   masquerAide()
-  if (mode !== 'entree') return
+  if (!estModeDeNotation(mode)) return
   aideVisible.value = true
   minuterie = setTimeout(masquerAide, DUREE_AIDE)
 }
@@ -42,7 +48,7 @@ function choisir(mode: ModeChoisi) {
 watch(
   () => props.mode,
   (mode) => {
-    if (mode !== 'entree') masquerAide()
+    if (!estModeDeNotation(mode)) masquerAide()
   },
 )
 

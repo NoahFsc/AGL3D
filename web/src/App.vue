@@ -71,16 +71,14 @@ function envoyerMode() {
 
 /**
  * Passe dans le mode choisi (C4) : `init` puis `setPoints` partent vers Unity, tout de suite
- * ou à `ready`. Pour une entrée, la caméra va ensuite au salon, ou dans la pièce de
- * l'élément cliqué sur l'accueil (`piece`).
+ * ou à `ready`. La caméra ne bouge pas : seuls les boutons de pièce la déplacent.
  */
-function choisir(nouveauMode: ModeChoisi, piece: CibleCamera = 'salon') {
+function choisir(nouveauMode: ModeChoisi) {
   selection.value = null
   mode.value = nouveauMode
   if (!unityPret.value) return
   envoyerMode()
   envoyerPoints()
-  if (nouveauMode === 'entree') allerDans(piece)
 }
 
 /* ------------------------------ Fiche (B4) ------------------------------ */
@@ -129,7 +127,7 @@ function ouvrirFiche(key: ElementKey, x: number) {
   const connu = element !== undefined
   if (element && mode.value === 'accueil') {
     // `init` retire la sélection dans Unity : on la redonne juste après.
-    choisir('entree', element.pieceKey)
+    choisir('entree')
     viewer.value?.send('select', { key })
   }
   if (!ficheAutorisee.value || !connu) {
