@@ -91,8 +91,8 @@ manquants.
 
 | Pack | Utilisé pour | Dossier |
 | ---- | ------------ | ------- |
-| [Low Poly Furniture Pack Free](https://assetstore.unity.com/packages/package/389770) (IGS) | porte d'entrée, tableau | `Assets/LowPolyFurniturePackFree/` |
-| [Furniture Mega Pack - Free](https://assetstore.unity.com/packages/package/330002) | canapé | `Assets/Furniture Mega Pack/` |
+| [Low Poly Furniture Pack Free](https://assetstore.unity.com/packages/package/389770) (IGS) | porte d'entrée, tableaux, armoire, bureau et chaise, lampes, plante | `Assets/LowPolyFurniturePackFree/` |
+| [Furniture Mega Pack - Free](https://assetstore.unity.com/packages/package/330002) | canapé, lit, tables de chevet | `Assets/Furniture Mega Pack/` |
 
 Pour chaque pack :
 

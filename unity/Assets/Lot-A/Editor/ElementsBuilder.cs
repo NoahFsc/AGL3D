@@ -15,7 +15,7 @@ namespace AGL3D.LotA.Editor
     /// (lot B) et les repères (lot C) fonctionnent comme avec les cubes.
     /// Relancer un générateur écrase le prefab de l'élément.
     /// </summary>
-    public static class ElementsBuilder
+    public static partial class ElementsBuilder
     {
         private const string Dir = "Assets/Lot-A/Elements";
         private const string MatDir = Dir + "/Materials";
